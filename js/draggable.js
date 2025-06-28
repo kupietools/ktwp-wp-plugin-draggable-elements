@@ -1,0 +1,405 @@
+class AdvancedDraggable {
+    constructor(config) {
+        this.config = config;
+        this.activeElement = null;
+        this.isDragging = false;
+        this.dragStarted = false;
+        this.init();
+    }
+
+    init() {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                this.setupDraggables();
+            });
+        } else {
+            this.setupDraggables();
+        }
+        
+        // Use MutationObserver to watch for new elements in real-time
+        if (window.MutationObserver) {
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+					/* console.log("mutation",mutation); */
+                    if ((mutation.type === 'childList' && mutation.addedNodes.length > 0) || mutation.attributeName === 'class') {
+						var theseNodes = [];
+							if (mutation.attributeName === 'class') {
+								const childrenArray = Array.from(mutation.target.querySelectorAll('*')); 
+  theseNodes = [mutation.target, ...childrenArray];/*console.log("mutation.target",mutation.target,"childrenArray",childrenArray);console.log("these Nodes",theseNodes);*/
+							} else {theseNodes = mutation.addedNodes;/* console.log("AddedNodes",mutation.addedNodes);*/}
+                        //console.log('操 DOM changed - nodes added:', mutation.addedNodes.length);
+                        theseNodes.forEach((node) => {
+                            if (node.nodeType === 1) { // Element node
+                               // console.log('  逃 Added element:', node.tagName, node.id || '(no id)', node.className || '(no class)');
+                                
+                                // Check if the added node itself matches our selectors
+                                this.config.forEach(item => {
+                                    if (node.matches && node.matches(item.selector)) {
+										//                                        console.log(`識 Found new element immediately: ${item.selector}`, node);
+                                        if (!node.hasAttribute('data-draggable')) {
+                                            this.makeDraggable(node, item);
+                                        }
+                                    }
+                                    
+                                    // Also check if any children of the added node match
+                                    if (node.querySelectorAll) {
+                                        const childMatches = node.querySelectorAll(item.selector);
+                                        if (childMatches.length > 0) {
+                                          //  console.log(`識 Found ${childMatches.length} child elements matching ${item.selector}`);
+                                        }
+                                        childMatches.forEach(child => {
+                                            if (!child.hasAttribute('data-draggable')) {
+                                               // console.log(`識 Found new child element: ${item.selector}`, child);
+                                                this.makeDraggable(child, item);
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+            });
+            
+            // Start observing
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true,
+				attributes: true, /* needed for class changes */
+				attributeFilter: ['class','id'] /* if you want to trigger off dynamic changes to more attributes, add them here */
+            });
+            
+            //console.log('MutationObserver set up - watching for dynamic elements in real-time');
+        } else {
+            //console.log('MutationObserver not supported');
+        }
+    }
+
+    setupDraggables() {
+        //console.log('Setting up draggables:', this.config);
+        
+        
+        
+        this.config.forEach(item => {
+            const elements = document.querySelectorAll(item.selector);
+            //console.log(`Found ${elements.length} elements for ${item.selector}`);
+            
+            elements.forEach(element => {
+                if (!element.hasAttribute('data-draggable')) {
+                    this.makeDraggable(element, item);
+                }
+            });
+        });
+    }
+
+    makeDraggable(element, config) {
+        element.draggableConfig = config;
+		
+       const rect = element.getBoundingClientRect();
+      
+       element.setAttribute('htwp-de-rect-height',  rect.height);
+       element.setAttribute('htwp-de-rect-width',  rect.width);
+        element.setAttribute('data-draggable', 'true');
+        element.style.cursor = 'move';
+        element.style.userSelect = 'none';
+		const constraintDesc= {"vertical":"vertically","horizontal":"horizontally","corners":"to any corner"};
+		element.title=(element.title?element.title+" - ":"")+"☝ Drag me "+(constraintDesc[config.constraint]?constraintDesc[config.constraint]+" ":"")+"to reposition!";
+		/* if I decide to make all children use move cursor, do this. const descendents = element.querySelectorAll("*"); /~ yes, I know how it's spelled. Ask Milo. ~/ */
+		 
+
+        
+        // For corner constraint, pre-position to a corner
+        if (config.constraint === 'corners') {
+            const margin = config.cornerMargin || 25;
+            element.style.position = 'fixed';
+            element.style.left = margin + 'px';
+            element.style.bottom = margin + 'px';
+            element.style.top = 'auto';
+            element.style.right = 'auto';
+        }
+        
+        element.addEventListener('mousedown', (e) => this.handleMouseDown(e));
+        element.addEventListener('dragstart', (e) => e.preventDefault());
+        
+        // --- Touchscreen Support ---
+        element.addEventListener('touchstart', (e) => this.handleTouchStart(e));
+        element.addEventListener('touchmove', (e) => this.handleTouchMove(e));
+        element.addEventListener('touchend', (e) => this.handleTouchEnd(e));
+        element.addEventListener('touchcancel', (e) => this.handleTouchEnd(e)); // handle when a touch is interrupted
+
+        // Prevent clicks during drag
+        element.addEventListener('click', (e) => {
+            if (this.dragStarted) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                return false;
+            }
+        }, true);
+    }
+
+    handleMouseDown(e) {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        
+        const element = e.target.closest('[data-draggable]');
+        if (!element) return;
+        
+        this.activeElement = element;
+        this.isDragging = true;
+        this.dragStarted = false;
+       
+      //  console.log('Drag started for:', element, 'constraint:', element.draggableConfig.constraint);
+        
+        // Add event listeners
+        document.addEventListener('mousemove', this.handleMouseMove.bind(this));
+        document.addEventListener('mouseup', this.handleMouseUp.bind(this));
+        
+        element.style.zIndex = '999999';
+        element.classList.add('is-dragging');
+       //no don't need it: element.classList.add('is-held-draggable'); // Add this line for the visual indicator
+    }
+
+    // --- New Touch Event Handlers ---
+    handleTouchStart(e) {
+        e.preventDefault(); // Prevent scrolling and zooming
+        const touch = e.touches[0];
+        // Simulate a mouse down event for reusability
+        this.handleMouseDown({
+            button: 0, // Left click
+            target: touch.target,
+            clientX: touch.clientX,
+            clientY: touch.clientY,
+            preventDefault: () => {} // Dummy preventDefault
+        });
+        const element = e.target.closest('[data-draggable]');
+       /* no don't need it
+ if (element) {
+            element.classList.add('is-held-draggable'); // Add this line for the visual indicator
+        } */
+    }
+
+    handleTouchMove(e) {
+        e.preventDefault(); // Prevent scrolling
+        if (!this.activeElement || !this.isDragging) return;
+        const touch = e.touches[0];
+        // Simulate a mouse move event
+        this.handleMouseMove({
+            clientX: touch.clientX,
+            clientY: touch.clientY,
+            movementX: touch.clientX - (this._lastTouchX || touch.clientX), // Estimate movementX
+            movementY: touch.clientY - (this._lastTouchY || touch.clientY), // Estimate movementY
+            preventDefault: () => {}
+        });
+        this._lastTouchX = touch.clientX;
+        this._lastTouchY = touch.clientY;
+    }
+
+    handleTouchEnd(e) {
+        if (!this.activeElement) return;
+        // Simulate a mouse up event
+        this.handleMouseUp({
+            clientX: this._lastTouchX,
+            clientY: this._lastTouchY,
+            preventDefault: () => {}
+        });
+        this._lastTouchX = null;
+        this._lastTouchY = null;
+
+         // Remove touch event listeners from the document
+         document.removeEventListener('touchmove', this.handleTouchMove.bind(this));
+         document.removeEventListener('touchend', this.handleTouchEnd.bind(this));
+         document.removeEventListener('touchcancel', this.handleTouchEnd.bind(this));
+        
+        // Ensure 'is-held-draggable' is removed on touch end
+   /* no don't need it:     if (this.activeElement) {
+            this.activeElement.classList.remove('is-held-draggable');
+        } */
+    }
+    // --- End New Touch Event Handlers ---
+
+    handleMouseMove(e) {
+        if (!this.activeElement || !this.isDragging) return;
+        
+        if (!this.dragStarted) {
+            this.dragStarted = true;
+			
+        }
+		if (this.deltaX==this.deltaY && this.deltaX==0)
+		{this.deltaX = e.movementX;
+			this.deltaY = e.movementY;
+			}
+        
+        const config = this.activeElement.draggableConfig;
+        
+        if (config.constraint === 'Xcorners') { //disabling, will do this on mouseup
+			//this.handleCornerMovement(e) NOT ANYMORE
+            if (e.deltaX > e.deltaY) { this.handleHorizontalMovement(e);} else { this.handleVerticalMovement(e);} 
+        } else if (config.constraint === 'vertical') {
+            this.handleVerticalMovement(e);
+        } else if (config.constraint === 'horizontal') {
+            this.handleHorizontalMovement(e);
+        } else  {
+            this.handleFreeMovement(e);
+        }
+        // Add other constraint types here if needed
+    }
+
+    handleCornerMovement(e) {
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const margin = this.activeElement.draggableConfig.cornerMargin || 25;
+        
+       // const rect = this.activeElement.getBoundingClientRect();
+        const elementWidth = this.activeElement.getAttribute('htwp-de-rect-width'); //rect.width
+        const elementHeight = this.activeElement.getAttribute('htwp-de-rect-height'); //rect.height
+        
+        const centerX = viewportWidth / 2;
+        const centerY = viewportHeight / 2;
+        this.activeElement.style.position = 'fixed';
+        // Determine which corner based on mouse position
+        if (e.clientX < centerX && e.clientY < centerY) {
+            // Top-left
+            this.activeElement.style.left = margin + 'px';
+            this.activeElement.style.top = margin + 'px';
+            this.activeElement.style.right = 'auto';
+            this.activeElement.style.bottom = 'auto';
+        } else if (e.clientX >= centerX && e.clientY < centerY) {
+            // Top-right
+            this.activeElement.style.right = margin + 'px';
+            this.activeElement.style.top = margin + 'px';
+            this.activeElement.style.left = 'auto';
+            this.activeElement.style.bottom = 'auto';
+        } else if (e.clientX < centerX && e.clientY >= centerY) {
+            // Bottom-left
+            this.activeElement.style.left = margin + 'px';
+            this.activeElement.style.bottom = margin + 'px';
+            this.activeElement.style.right = 'auto';
+            this.activeElement.style.top = 'auto';
+        } else {
+            // Bottom-right
+            this.activeElement.style.right = margin + 'px';
+            this.activeElement.style.bottom = margin + 'px';
+            this.activeElement.style.left = 'auto';
+            this.activeElement.style.top = 'auto';
+        }
+    }
+
+     handleFreeMovement(e) {
+        const viewportHeight = window.innerHeight;
+        const rect = this.activeElement.getBoundingClientRect();
+        const elementHeight = rect.height;
+        
+        // Keep horizontal position, only change vertical
+        let newY = e.clientY - (elementHeight / 2);
+        newY = Math.max(0, Math.min(newY, viewportHeight - elementHeight));
+        
+        this.activeElement.style.position = 'fixed';
+        this.activeElement.style.top = newY + 'px';
+        this.activeElement.style.bottom = 'auto';
+       
+	    const viewportWidth = window.innerWidth;
+        const elementWidth = rect.width;
+        
+        // Keep horizontal position, only change vertical
+        let newX = e.clientX - (elementWidth / 2);
+        newX = Math.max(0, Math.min(newX, viewportWidth - elementWidth));
+        
+        this.activeElement.style.left = newX + 'px'; 
+	    this.activeElement.style.right = 'auto';
+       
+    }
+
+	 handleVerticalMovement(e) {
+        const viewportHeight = window.innerHeight;
+        const rect = this.activeElement.getBoundingClientRect();
+        const elementHeight = rect.height;
+        
+        // Keep horizontal position, only change vertical
+        let newY = e.clientY - (elementHeight / 2);
+        newY = Math.max(0, Math.min(newY, viewportHeight - elementHeight));
+        
+        if (this.activeElement.style.position != 'fixed') {this.activeElement.style.left = rect.left+'px'; /* otherwise will jump when set to fixed, if page has been scrolled */}
+		 
+		this.activeElement.style.position = 'fixed';
+        this.activeElement.style.top = newY + 'px';
+        this.activeElement.style.bottom = 'auto';
+        // Don't change left/right positioning
+    }
+
+	
+    handleHorizontalMovement(e) {
+        const viewportWidth = window.innerWidth;
+        const rect = this.activeElement.getBoundingClientRect();
+        const elementWidth = rect.width;
+        
+        // Keep horizontal position, only change vertical
+        let newX = e.clientX - (elementWidth / 2);
+        newX = Math.max(0, Math.min(newX, viewportWidth - elementWidth));
+				//console.log("AAA this.activeElement.style.position",this.activeElement.style.position,"rect.top",rect.top,"this.activeElement.style.top",this.activeElement.style.top);
+        if (this.activeElement.style.position != 'fixed') {this.activeElement.style.top = rect.top+'px'; /* otherwise will jump when set to fixed, if page has been scrolled */}
+        this.activeElement.style.position = 'fixed';
+		
+		//console.log("BBB this.activeElement.style.position",this.activeElement.style.position,"rect.top",rect.top,"this.activeElement.style.top",this.activeElement.style.top);
+        this.activeElement.style.left = newX + 'px';
+		this.activeElement.style.right = 'auto';
+
+        // Don't change left/right positioning
+    }
+
+	
+    handleMouseUp(e) {
+        if (!this.activeElement) return;
+        
+        //console.log('Drag ended');
+        //
+         const config = this.activeElement.draggableConfig;
+			this.deltaX = "";
+			this.deltaY = "";
+        
+        if (config.constraint === 'corners') { 
+            this.handleCornerMovement(e);
+		}
+        
+        this.activeElement.classList.remove('is-dragging');
+     //no don't need it:   this.activeElement.classList.remove('is-held-draggable'); // Remove this line for the visual indicator
+       /* this.activeElement.style.zIndex = ''; No, let's leave it in front, so it's not possible to drag it behind something else accidentally */
+        
+        document.removeEventListener('mousemove', this.handleMouseMove.bind(this));
+        document.removeEventListener('mouseup', this.handleMouseUp.bind(this));
+        
+        const element = this.activeElement;
+        this.activeElement = null;
+        this.isDragging = false;
+        
+        // Clear drag started flag after a delay to prevent immediate clicks
+        setTimeout(() => {
+            this.dragStarted = false;
+        }, 100);
+        
+        // Dispatch custom event
+        const rect = element.getBoundingClientRect();
+        const event = new CustomEvent('draggableElementMoved', {
+            detail: {
+                element: element,
+                position: {
+                    x: rect.left,
+                    y: rect.top
+                },
+                constraint: element.draggableConfig.constraint
+            }
+        });
+        document.dispatchEvent(event);
+    }
+}
+
+// Initialize with the config provided by WordPress
+//console.log('Draggable script loaded');
+//console.log('draggableSettings:', typeof draggableSettings !== 'undefined' ? draggableSettings : 'undefined');
+
+if (typeof draggableSettings !== 'undefined' && draggableSettings.config) {
+    //console.log('Initializing AdvancedDraggable with config:', draggableSettings.config);
+    new AdvancedDraggable(draggableSettings.config);
+} else {
+    //console.error('draggableSettings not found or invalid');
+}
