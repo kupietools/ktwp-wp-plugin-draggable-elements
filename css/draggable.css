@@ -16,23 +16,52 @@
 	opacity: .5;
 }
 
-.is-dragging::after { /* this way drawing a border won't move the contents, whether or not there's already a border */
-    content: '';
+.is-dragging::after { 
+    content: ''; 
     position: absolute;
     top: -2px;
     left: -2px;
     right: -2px;
     bottom: -2px;
-    border: 2px dashed red;
+ /*   border: 2px dashed red; */
     border-radius: inherit;
+ position: absolute;
+  
+  /*  transform: scale(0.9) translateZ(0); */
+   filter: blur(5px); 
+	/*was 20, with opacity .75 */
+ opacity:.8;
+    background: linear-gradient(
+      to left,
+      red,
+      orange,
+      yellow,
+      green,
+      blue,
+      #8800FF,
+      #FF0088
+    );
+    background-size: 200% 200%;
+   animation: animateGlow 1.25s linear infinite; 
+	clip-path: polygon(-100% -100%, -100% 200%, -1% 200%, -1% -1%, 101% -1%, 101% 101%, -1% 101%, -1% 200%, 200% 200%, 200% -100%) 
+  }
+
+
+@keyframes animateGlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+
 }
 
 .is-dragging {
 	  cursor: grabbing !important;
-	/* border-width:2px; nah, causes content shifts on things without borders. We'll only do this if things already have a border. . 
-border-style: dashed !important;
-	border-color: red !important;*/
-	border-color:rgba(0,0,0,0) !important; /* hide borders, ::after element will draw them. this way drawing a border won't move the contents, whether or not there's already a border */
+	/* border-width:2px; nah, causes content shifts on things without borders. We'll only do this if things already have a border. . */
+/* border:inherit dashed  #777 !important; */
+	  /* border-color:rgba(0,0,0,0) !important;hide borders, ::after element will draw them. this way drawing a border won't move the contents, whether or not there's already a border */
 	
 
  
