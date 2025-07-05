@@ -16,8 +16,24 @@
 	opacity: .5;
 }
 
+.is-dragging::after { /* this way drawing a border won't move the contents, whether or not there's already a border */
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border: 2px dashed red;
+    border-radius: inherit;
+}
 
 .is-dragging {
 	  cursor: grabbing !important;
+	/* border-width:2px; nah, causes content shifts on things without borders. We'll only do this if things already have a border. . 
+border-style: dashed !important;
+	border-color: red !important;*/
+	border-color:rgba(0,0,0,0) !important; /* hide borders, ::after element will draw them. this way drawing a border won't move the contents, whether or not there's already a border */
+	
+
  
 }

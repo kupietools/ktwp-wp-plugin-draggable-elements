@@ -97,9 +97,11 @@ class AdvancedDraggable {
 		
        const rect = element.getBoundingClientRect();
       
-       element.setAttribute('htwp-de-rect-height',  rect.height);
-       element.setAttribute('htwp-de-rect-width',  rect.width);
+       element.setAttribute('ktwp-de-rect-height',  rect.height);
+       element.setAttribute('ktwp-de-rect-width',  rect.width);
         element.setAttribute('data-draggable', 'true');
+		element.setAttribute('data-ktwp-de-position', getComputedStyle(element)["position"])
+	/* nah, we just won't set the zIndex at all 	element.setAttribute('data-ktwp-de-zIndex', getComputedStyle(element)["zIndex"]) */
         element.style.cursor = 'move';
         element.style.userSelect = 'none';
 		const constraintDesc= {"vertical":"vertically","horizontal":"horizontally","corners":"to any corner"};
@@ -116,6 +118,7 @@ class AdvancedDraggable {
             element.style.bottom = margin + 'px';
             element.style.top = 'auto';
             element.style.right = 'auto';
+			element.style.zIndex = '999999'; /* moved from handleMouseDown just for corner-snapped elements; see not about it in that function. Ideally, eventually, it should check if the developer has set this with getComputedStyles and only assign it if not; but I don't need that level of detail right now, so, will procrastinate on it. */
 		    document.body.appendChild(element)
         } 
 		
@@ -162,7 +165,6 @@ class AdvancedDraggable {
 		}
 
         
-        // For corner constraint, pre-position to a corner
        
 	if (newNode /* position wasn't fixed */ ){element.style.left = rect.left+"px";element.style.top = rect.top+"px"; element.style.position = 'fixed';element.style.margin="0"/*otherwise jumps when you touch it */;document.body.appendChild(element);/* if the element wasn't fixed, move it to a child of the body, because CSS transforms on an ancestor (or similar things) can create a new stacking context. If it was already fixed, we'll leave it to the original page code to put it in the context it should be in. */ }
 
@@ -181,7 +183,10 @@ class AdvancedDraggable {
         document.addEventListener('mousemove', this.handleMouseMove.bind(this));
         document.addEventListener('mouseup', this.handleMouseUp.bind(this));
         
-        element.style.zIndex = '999999';
+       /* Originally I always set the z-index to 999999, back when objects stayed position 'fixed' after dragging and didn't scroll with the page. But nah, we just won't set the zIndex at all, so we don't have to reset it on mouseup. Otherwise, could have a situation where it disappears behind something on mouseup; but without setting it, could scroll over page header. This way, it's developer's job to set Z index properly on element, not plugin's job to make assumptions. 
+
+HOWEVER: The exception to this is the corner snap. Because this will "snap" to a corner after you release, it is possible to drag it, still have it be visible, and then on release have it disappear behind, say, a page header or menu heading and have it be irretrievable. So we'll assume corner-snapped elements always stay in front. BUT, we'll do that where the original corner is set up in makeDraggable.
+ element.style.zIndex = '999999'; */
         element.classList.add('is-dragging');
        //no don't need it: element.classList.add('is-held-draggable'); // Add this line for the visual indicator
     }
@@ -277,8 +282,8 @@ class AdvancedDraggable {
         const margin = this.activeElement.draggableConfig.cornerMargin || 25;
         
        // const rect = this.activeElement.getBoundingClientRect();
-        const elementWidth = this.activeElement.getAttribute('htwp-de-rect-width'); //rect.width
-        const elementHeight = this.activeElement.getAttribute('htwp-de-rect-height'); //rect.height
+        const elementWidth = this.activeElement.getAttribute('ktwp-de-rect-width'); //rect.width
+        const elementHeight = this.activeElement.getAttribute('ktwp-de-rect-height'); //rect.height
         
         const centerX = viewportWidth / 2;
         const centerY = viewportHeight / 2;
@@ -385,7 +390,19 @@ class AdvancedDraggable {
         
         if (config.constraint === 'corners') { 
             this.handleCornerMovement(e);
-		}
+		} else 
+			{/* let's make it absolute on mouseup so scrolls with page, if wasn't fixed to begin with */
+				if (this.activeElement.getAttribute("data-ktwp-de-position")!="fixed")
+				{   
+				const rect = this.activeElement.getBoundingClientRect();
+				const absoluteX = rect.left + window.scrollX;
+                const absoluteY = rect.top + window.scrollY;
+				this.activeElement.style.left = absoluteX + 'px';
+				this.activeElement.style.top = absoluteY + 'px';
+				this.activeElement.style.position="absolute";
+				/* nah, we just won't set the zIndex at all this.activeElement.style.zIndex=this.activeElement.getAttribute("data-ktwp-de-zIndex");	*/
+				}
+			}
         
         this.activeElement.classList.remove('is-dragging');
      //no don't need it:   this.activeElement.classList.remove('is-held-draggable'); // Remove this line for the visual indicator
