@@ -139,7 +139,34 @@ class AdvancedDraggable {
                 e.stopImmediatePropagation();
                 return false;
             }
-        }, true);
+        }, true); //end prevent clicks
+		
+	if (element.id && sessionStorage.getItem("ktwp-de-elem-"+element.id+"-x")) {const absoluteX=sessionStorage.getItem("ktwp-de-elem-"+element.id+"-x");
+						const absoluteY=sessionStorage.getItem("ktwp-de-elem-"+element.id+"-y");
+			console.log("ss",sessionStorage);																    this.handleMouseDown({ /* prepare element for dragging (create placeholder if nec, etc) */
+            button: 0, // Left click
+            target: element,
+            clientX: rect.left,
+            clientY: rect.top,
+            preventDefault: () => {} // Dummy preventDefault
+        });
+								console.log("ss2",sessionStorage);														console.log("element",element.id);
+																				console.log("X,Y",absoluteX,absoluteY);
+																   
+				this.handleMouseUp({ /* prepare element for dragging (create placeholder if nec, etc) */
+            button: 0, // Left click
+            target: element,
+            clientX: absoluteX,
+            clientY: absoluteY,
+            preventDefault: () => {}, // Dummy preventDefault
+			simulated: true /*tell function it's a simulated mouseup so it doesn't store coords */
+
+        });
+							console.log("ss3",sessionStorage);
+			
+			element.style.left=absoluteX+"px";
+		element.style.top=absoluteY+"px";	
+		}
     }
 
     handleMouseDown(e) {
@@ -387,20 +414,24 @@ HOWEVER: The exception to this is the corner snap. Because this will "snap" to a
          const config = this.activeElement.draggableConfig;
 			this.deltaX = "";
 			this.deltaY = "";
-        
+		
+        	const rect = this.activeElement.getBoundingClientRect();
+				const absoluteX = rect.left + window.scrollX;
+                const absoluteY = rect.top + window.scrollY;
+		
         if (config.constraint === 'corners') { 
             this.handleCornerMovement(e);
 		} else 
 			{/* let's make it absolute on mouseup so scrolls with page, if not corner-constrained and wasn't fixed to begin with */
 				if (this.activeElement.getAttribute("data-ktwp-de-position")!="fixed")
 				{   
-				const rect = this.activeElement.getBoundingClientRect();
-				const absoluteX = rect.left + window.scrollX;
-                const absoluteY = rect.top + window.scrollY;
+			
 				this.activeElement.style.left = absoluteX + 'px';
 				this.activeElement.style.top = absoluteY + 'px';
 				this.activeElement.style.position="absolute";
 				/* nah, we just won't set the zIndex at all this.activeElement.style.zIndex=this.activeElement.getAttribute("data-ktwp-de-zIndex");	*/
+					if (this.activeElement.id && !e.simulated) {/*if the element has an ID and is not fixed or corner-constrained, store absolute X & Y */ sessionStorage.setItem("ktwp-de-elem-"+this.activeElement.id+"-x",absoluteX);
+						sessionStorage.setItem("ktwp-de-elem-"+this.activeElement.id+"-y",absoluteY);}
 				}
 			}
         
@@ -412,6 +443,9 @@ HOWEVER: The exception to this is the corner snap. Because this will "snap" to a
         document.removeEventListener('mouseup', this.handleMouseUp.bind(this));
         
         const element = this.activeElement;
+		
+	
+		
         this.activeElement = null;
         this.isDragging = false;
         
@@ -420,14 +454,14 @@ HOWEVER: The exception to this is the corner snap. Because this will "snap" to a
             this.dragStarted = false;
         }, 100);
         
-        // Dispatch custom event
-        const rect = element.getBoundingClientRect();
+        // Dispatch custom event - IS THIS USED?
+        const rectNew = element.getBoundingClientRect(); /* Is this different from rect? TO DO: add logging to check. */
         const event = new CustomEvent('draggableElementMoved', {
             detail: {
                 element: element,
                 position: {
-                    x: rect.left,
-                    y: rect.top
+                    x: rectNew.left,
+                    y: rectNew.top
                 },
                 constraint: element.draggableConfig.constraint
             }
