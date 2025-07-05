@@ -106,19 +106,7 @@ class AdvancedDraggable {
 		element.title=(element.title?element.title+" - ":"")+"☝ Drag me "+(constraintDesc[config.constraint]?constraintDesc[config.constraint]+" ":"")+"to reposition!";
 		/* if I decide to make all children use move cursor, do this. const descendents = element.querySelectorAll("*"); /~ yes, I know how it's spelled. Ask Milo. ~/ */
 		 
-		
-		if (element.style.position != 'fixed') {
-			var newNode = document.createElement("div");
-			newNode.style.margin = getComputedStyle(element)["margin"];
-			newNode.style.top = rect.top+"px";
-			newNode.style.left = rect.left+"px";
-			newNode.style.height = rect.height+"px";
-			newNode.style.width = rect.width+"px";
-			newNode.style.opacity = '0';
-			newNode.setAttribute('data-draggable-placeholder', 'true');
-			element.parentNode.insertBefore(newNode,element);
-		}
-
+	
         
         // For corner constraint, pre-position to a corner
         if (config.constraint === 'corners') {
@@ -128,8 +116,8 @@ class AdvancedDraggable {
             element.style.bottom = margin + 'px';
             element.style.top = 'auto';
             element.style.right = 'auto';
-        } else {element.style.left = rect.left+"px";element.style.top = rect.top+"px"; element.style.position = 'fixed';}
-	if (newNode /* position wasn't fixed */ ){document.body.appendChild(element);/* if the element wasn't fixed, move it to a child of the body, because CSS transforms on an ancestor (or similar things) can create a new stacking context. If it was already fixed, we'll leave it to the original page code to put it in the context it should be in. */ }
+		    document.body.appendChild(element)
+        } 
 		
         element.addEventListener('mousedown', (e) => this.handleMouseDown(e));
         element.addEventListener('dragstart', (e) => e.preventDefault());
@@ -158,6 +146,31 @@ class AdvancedDraggable {
         const element = e.target.closest('[data-draggable]');
         if (!element) return;
         
+/* copied from makedraggable; let's do these when clicked, not at load. */
+		 const rect = element.getBoundingClientRect();
+		if (element.style.position != 'fixed' && element.style.position != 'absolute' ) {
+			
+			var newNode = document.createElement("div");
+			newNode.style.margin = getComputedStyle(element)["margin"];
+			newNode.style.top = rect.top+"px";
+			newNode.style.left = rect.left+"px";
+			newNode.style.height = rect.height+"px";
+			newNode.style.width = rect.width+"px";
+			newNode.style.opacity = '0';
+			newNode.setAttribute('data-draggable-placeholder', 'true');
+			element.parentNode.insertBefore(newNode,element);
+		}
+
+        
+        // For corner constraint, pre-position to a corner
+       
+	if (newNode /* position wasn't fixed */ ){element.style.left = rect.left+"px";element.style.top = rect.top+"px"; element.style.position = 'fixed';element.style.margin="0"/*otherwise jumps when you touch it */;document.body.appendChild(element);/* if the element wasn't fixed, move it to a child of the body, because CSS transforms on an ancestor (or similar things) can create a new stacking context. If it was already fixed, we'll leave it to the original page code to put it in the context it should be in. */ }
+
+/* END copied from makedraggable; let's do these when clicked, not at load. */
+
+
+
+
         this.activeElement = element;
         this.isDragging = true;
         this.dragStarted = false;
