@@ -6,7 +6,6 @@
 	right: -40%;
 	bottom: -40%;
 	/* background-color: rgba(255, 255, 255, 0.1); */
-	background-image: url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\"><path fill=\"rgba(0,0,0,0.3)\" d=\"M12 2l4 4h-3v4h-2V6h-3l4-4zm0 20l-4-4h3v-4h2v4h3l-4 4zm-10-10l4 4v-3h4v-2H6V8L2 12zm20 0l-4-4v3h-4v2h4v3l4-4z\"/></svg>');
 	background-repeat: no-repeat;
 	background-position: center center;
 	background-size: contain;
@@ -14,7 +13,13 @@
 	z-index: 2;
 	overflow: visible;
 	opacity: .5;
+background-image: url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\"><path fill=\"rgba(0,0,0,0.3)\" d=\"M8.326 5.327 12.03 1l3.705 4.327h-1.853v4.349h-3.705V5.326zM15.736 18.734 12.03 23.06l-3.706-4.327h1.853v-4.348h3.705v4.348zM18.734 8.325l4.327 3.706-4.327 3.705v-1.853h-4.348v-3.705h4.348zM5.327 15.736 1 12.03l4.327-3.706v1.853h4.349v3.705H5.326z\"/></svg>');
 }
+
+/* takign advantage of inheritance rules here */
+.is-dragging.ktwp-de-cdrag::before {background-image: url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\"><g fill=\"rgba(0,0,0,0.3)\"><path d=\"m5.56 15.5-2.74 3.201-2.74-3.2h1.37v-3.217h2.74V15.5zM18.5 8.828l2.741-3.2 2.74 3.2h-1.37v3.216h-2.74V8.828zM.08 9.056l2.74-3.201 2.74 3.2H4.19v3.217H1.45V9.056zM23.981 15.273l-2.74 3.201-2.74-3.2h1.37v-3.217h2.74v3.216z\"/><circle cx=\"2.77\" cy=\"3.163\" r=\"1.993\"/><circle cx=\"2.77\" cy=\"21.389\" r=\"1.993\"/><circle cx=\"21.189\" cy=\"3.163\" r=\"1.993\"/><circle cx=\"21.189\" cy=\"21.389\" r=\"1.993\"/><circle cx=\"50.136\" cy=\"20.534\" r=\"0\"/><path d=\"m8.688 5.694-3.2-2.74 3.2-2.74v1.37h3.216v2.74H8.688zM15.133.214l3.2 2.74-3.2 2.74v-1.37h-3.216v-2.74h3.216zM15.133 18.634l3.2 2.74-3.2 2.741v-1.37h-3.216v-2.74h3.216zM8.688 24.115l-3.2-2.74 3.2-2.74v1.37h3.216v2.74H8.688z\"/></g></svg>');}
+.is-dragging.ktwp-de-hdrag::before {background-image: url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\"><path fill=\"rgba(0,0,0,0.3)\" d=\"m18.734 8.325 4.327 3.706-4.327 3.705v-1.853h-4.348v-3.705h4.348zM5.327 15.736 1 12.03l4.327-3.706v1.853h4.349v3.705H5.326z\"/></svg>');}
+.is-dragging.ktwp-de-vdrag::before {background-image: url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\"><path fill=\"rgba(0,0,0,0.3)\" d=\"M8.326 5.327 12.03 1l3.705 4.327h-1.853v4.349h-3.705V5.326zM15.736 18.734 12.03 23.06l-3.706-4.327h1.853v-4.348h3.705v4.348z\"/></svg>');}
 
 .is-dragging::after { 
     content: ''; 

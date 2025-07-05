@@ -104,11 +104,11 @@ class AdvancedDraggable {
 	/* nah, we just won't set the zIndex at all 	element.setAttribute('data-ktwp-de-zIndex', getComputedStyle(element)["zIndex"]) */
         element.style.cursor = 'move';
         element.style.userSelect = 'none';
-		const constraintDesc= {"vertical":"vertically","horizontal":"horizontally","corners":"to any corner"};
-		element.title=(element.title?element.title+" - ":"")+"☝ Drag me "+(constraintDesc[config.constraint]?constraintDesc[config.constraint]+" ":"")+"to reposition!";
+		const constraintDesc= {"vertical":{"desc":"vertically","class":"vdrag"},"horizontal":{"desc":"horizontally","class":"hdrag"},"corners":{"desc":"to any corner","class":"cdrag"}};
+		
+		element.title=(element.title?element.title+" - ":"")+"☝ Drag me "+(constraintDesc[config.constraint]&&constraintDesc[config.constraint].desc?constraintDesc[config.constraint].desc+" ":"")+"to reposition!";
+		if (constraintDesc[config.constraint]&&constraintDesc[config.constraint].class) { element.classList.add("ktwp-de-"+constraintDesc[config.constraint].class);}
 		/* if I decide to make all children use move cursor, do this. const descendents = element.querySelectorAll("*"); /~ yes, I know how it's spelled. Ask Milo. ~/ */
-		 
-	
         
         // For corner constraint, pre-position to a corner
         if (config.constraint === 'corners') {
@@ -166,9 +166,9 @@ class AdvancedDraggable {
 
         
        
-	if (newNode /* position wasn't fixed */ ){element.style.left = rect.left+"px";element.style.top = rect.top+"px"; element.style.position = 'fixed';element.style.margin="0"/*otherwise jumps when you touch it */;document.body.appendChild(element);/* if the element wasn't fixed, move it to a child of the body, because CSS transforms on an ancestor (or similar things) can create a new stacking context. If it was already fixed, we'll leave it to the original page code to put it in the context it should be in. */ }
+	if (newNode /* position wasn't fixed */ ){element.style.left = rect.left+"px";element.style.top = rect.top+"px"; element.style.position = 'fixed';element.style.margin="0"/*otherwise jumps when you touch it */;document.body.appendChild(element);/* if the element wasn't fixed, move it to a child of the body, because CSS transforms on an ancestor (or similar things) can create a new stacking context, and "fixed at 0,0" follows the stacking context root element, not necessarily the body. If it was already fixed, we'll leave it to the original page code to put it in the context it should be in. */ }
 
-/* END copied from makedraggable; let's do these when clicked, not at load. */
+/* END copied from makedraggable */
 
 
 
@@ -391,7 +391,7 @@ HOWEVER: The exception to this is the corner snap. Because this will "snap" to a
         if (config.constraint === 'corners') { 
             this.handleCornerMovement(e);
 		} else 
-			{/* let's make it absolute on mouseup so scrolls with page, if wasn't fixed to begin with */
+			{/* let's make it absolute on mouseup so scrolls with page, if not corner-constrained and wasn't fixed to begin with */
 				if (this.activeElement.getAttribute("data-ktwp-de-position")!="fixed")
 				{   
 				const rect = this.activeElement.getBoundingClientRect();
