@@ -106,6 +106,18 @@ class AdvancedDraggable {
 		element.title=(element.title?element.title+" - ":"")+"☝ Drag me "+(constraintDesc[config.constraint]?constraintDesc[config.constraint]+" ":"")+"to reposition!";
 		/* if I decide to make all children use move cursor, do this. const descendents = element.querySelectorAll("*"); /~ yes, I know how it's spelled. Ask Milo. ~/ */
 		 
+		
+		if (element.style.position != 'fixed') {
+			var newNode = document.createElement("div");
+			newNode.style.margin = getComputedStyle(element)["margin"];
+			newNode.style.top = rect.top+"px";
+			newNode.style.left = rect.left+"px";
+			newNode.style.height = rect.height+"px";
+			newNode.style.width = rect.width+"px";
+			newNode.style.opacity = '0';
+			newNode.setAttribute('data-draggable-placeholder', 'true');
+			element.parentNode.insertBefore(newNode,element);
+		}
 
         
         // For corner constraint, pre-position to a corner
@@ -116,8 +128,9 @@ class AdvancedDraggable {
             element.style.bottom = margin + 'px';
             element.style.top = 'auto';
             element.style.right = 'auto';
-        }
-        
+        } else {element.style.left = rect.left+"px";element.style.top = rect.top+"px"; element.style.position = 'fixed';}
+	if (newNode /* position wasn't fixed */ ){document.body.appendChild(element);/* if the element wasn't fixed, move it to a child of the body, because CSS transforms on an ancestor (or similar things) can create a new stacking context. If it was already fixed, we'll leave it to the original page code to put it in the context it should be in. */ }
+		
         element.addEventListener('mousedown', (e) => this.handleMouseDown(e));
         element.addEventListener('dragstart', (e) => e.preventDefault());
         
