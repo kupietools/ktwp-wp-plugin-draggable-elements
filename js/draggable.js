@@ -143,6 +143,8 @@ class AdvancedDraggable {
 		
 	if (element.id && sessionStorage.getItem("ktwp-de-elem-"+element.id+"-x")) {const absoluteX=sessionStorage.getItem("ktwp-de-elem-"+element.id+"-x");
 						const absoluteY=sessionStorage.getItem("ktwp-de-elem-"+element.id+"-y");
+																				const absoluteR=sessionStorage.getItem("ktwp-de-elem-"+element.id+"-r");
+						const absoluteB=sessionStorage.getItem("ktwp-de-elem-"+element.id+"-b");
 			console.log("ss",sessionStorage);																    this.handleMouseDown({ /* prepare element for dragging (create placeholder if nec, etc) */
             button: 0, // Left click
             target: element,
@@ -164,8 +166,10 @@ class AdvancedDraggable {
         });
 							console.log("ss3",sessionStorage);
 			
-			element.style.left=absoluteX+"px";
-		element.style.top=absoluteY+"px";	
+			element.style.left=absoluteX;
+		element.style.top=absoluteY;	
+			element.style.right=absoluteR;
+		element.style.bottom=absoluteB;	
 		}
     }
 
@@ -430,11 +434,14 @@ HOWEVER: The exception to this is the corner snap. Because this will "snap" to a
 				this.activeElement.style.top = absoluteY + 'px';
 				this.activeElement.style.position="absolute";
 				/* nah, we just won't set the zIndex at all this.activeElement.style.zIndex=this.activeElement.getAttribute("data-ktwp-de-zIndex");	*/
-					if (this.activeElement.id && !e.simulated) {/*if the element has an ID and is not fixed or corner-constrained, store absolute X & Y */ sessionStorage.setItem("ktwp-de-elem-"+this.activeElement.id+"-x",absoluteX);
-						sessionStorage.setItem("ktwp-de-elem-"+this.activeElement.id+"-y",absoluteY);}
+					
 				}
 			}
-        
+        if (this.activeElement.id && !e.simulated) {/*if the element has an ID and is not fixed or corner-constrained, store absolute X & Y */ 
+			sessionStorage.setItem("ktwp-de-elem-"+this.activeElement.id+"-x",this.activeElement.style.left);
+			sessionStorage.setItem("ktwp-de-elem-"+this.activeElement.id+"-y",this.activeElement.style.top);
+					sessionStorage.setItem("ktwp-de-elem-"+this.activeElement.id+"-r",this.activeElement.style.right);
+			sessionStorage.setItem("ktwp-de-elem-"+this.activeElement.id+"-b",this.activeElement.style.bottom);}
         this.activeElement.classList.remove('is-dragging');
      //no don't need it:   this.activeElement.classList.remove('is-held-draggable'); // Remove this line for the visual indicator
        /* this.activeElement.style.zIndex = ''; No, let's leave it in front, so it's not possible to drag it behind something else accidentally */
