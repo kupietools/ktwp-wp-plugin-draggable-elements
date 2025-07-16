@@ -210,7 +210,13 @@ class AdvancedDraggable {
 
         
        
-	if (newNode /* position wasn't fixed */ ){element.style.left = rect.left+"px";element.style.top = rect.top+"px"; element.style.position = 'fixed';element.style.margin="0"/*otherwise jumps when you touch it */;document.body.appendChild(element);/* if the element wasn't fixed, move it to a child of the body, because CSS transforms on an ancestor (or similar things) can create a new stacking context, and "fixed at 0,0" follows the stacking context root element, not necessarily the body. If it was already fixed, we'll leave it to the original page code to put it in the context it should be in. */ }
+	if (newNode || (getComputedStyle(element).position == 'absolute')  /* position wasn't fixed - still need to do this for absolute or they stay positioned relative to the parent element, and if that's draggable too and been moved, then they "jump" and position themselves wrong when released. Once dragged, need to be fixed. */ )
+	{
+		element.style.left = rect.left+"px";element.style.top = rect.top+"px"; 
+		element.style.position = 'fixed';
+		element.style.margin="0"/*otherwise jumps when you touch it */;
+		document.body.appendChild(element);/* if the element wasn't fixed, move it to a child of the body, because CSS transforms on an ancestor (or similar things) can create a new stacking context, and "fixed at 0,0" follows the stacking context root element, not necessarily the body. If it was already fixed, we'll leave it to the original page code to put it in the context it should be in. */ 
+	}
 
 /* END copied from makedraggable */
 
@@ -440,7 +446,7 @@ HOWEVER: The exception to this is the corner snap. Because this will "snap" to a
             this.handleCornerMovement(e);
 		} else 
 			{/* let's make it absolute on mouseup so scrolls with page, if not corner-constrained and wasn't fixed to begin with */
-				if (this.activeElement.getAttribute("data-ktwp-de-position")!="fixed")
+				if (this.activeElement.getAttribute("data-ktwp-de-position")!="fixed" )
 				{   
 			
 				this.activeElement.style.left = absoluteX + 'px';
