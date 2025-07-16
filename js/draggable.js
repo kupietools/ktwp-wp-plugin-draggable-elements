@@ -1,3 +1,8 @@
+/*TO DOs:
+Add a kupietools tab for this, with buttons for "show all draggable items" and "reset all draggable items".
+Make all kupietools tabs line up instead of hardcoding positions from top... use a CSS variable and have the plugins tell sessionStorage how many plugins have loaded, then compute the top.
+Make a settings panel for this, let users enter the config. Need to figure out how to let users enter the config object.
+*/
 class AdvancedDraggable {
     constructor(config) {
         this.config = config;
@@ -78,8 +83,7 @@ class AdvancedDraggable {
     setupDraggables() {
         //console.log('Setting up draggables:', this.config);
         
-        
-        
+
         this.config.forEach(item => {
             const elements = document.querySelectorAll(item.selector);
             //console.log(`Found ${elements.length} elements for ${item.selector}`);
@@ -99,6 +103,8 @@ class AdvancedDraggable {
       
        element.setAttribute('ktwp-de-rect-height',  rect.height);
        element.setAttribute('ktwp-de-rect-width',  rect.width);
+		element.setAttribute('ktwp-de-rect-x',  rect.x +  getComputedStyle(element)["display"] =='fixed'?0:window.scrollX);
+		element.setAttribute('ktwp-de-rect-y',  rect.y +  getComputedStyle(element)["display"] =='fixed'?0:window.scrollY);
         element.setAttribute('data-draggable', 'true');
 		element.setAttribute('data-ktwp-de-position', getComputedStyle(element)["position"])
 	/* nah, we just won't set the zIndex at all 	element.setAttribute('data-ktwp-de-zIndex', getComputedStyle(element)["zIndex"]) */
@@ -145,15 +151,17 @@ class AdvancedDraggable {
 						const absoluteY=sessionStorage.getItem("ktwp-de-elem-"+element.id+"-y");
 																				const absoluteR=sessionStorage.getItem("ktwp-de-elem-"+element.id+"-r");
 						const absoluteB=sessionStorage.getItem("ktwp-de-elem-"+element.id+"-b");
-			console.log("ss",sessionStorage);																    this.handleMouseDown({ /* prepare element for dragging (create placeholder if nec, etc) */
+			//console.log("ss",sessionStorage);																   
+			 this.handleMouseDown({ /* prepare element for dragging (create placeholder if nec, etc) */
             button: 0, // Left click
             target: element,
             clientX: rect.left,
             clientY: rect.top,
             preventDefault: () => {} // Dummy preventDefault
         });
-								console.log("ss2",sessionStorage);														console.log("element",element.id);
-																				console.log("X,Y",absoluteX,absoluteY);
+								//console.log("ss2",sessionStorage);														
+								//console.log("element",element.id);
+																				//console.log("X,Y",absoluteX,absoluteY);
 																   
 				this.handleMouseUp({ /* prepare element for dragging (create placeholder if nec, etc) */
             button: 0, // Left click
@@ -164,7 +172,7 @@ class AdvancedDraggable {
 			simulated: true /*tell function it's a simulated mouseup so it doesn't store coords */
 
         });
-							console.log("ss3",sessionStorage);
+							//console.log("ss3",sessionStorage);
 			
 			element.style.left=absoluteX;
 		element.style.top=absoluteY;	
@@ -185,6 +193,10 @@ class AdvancedDraggable {
 		if (element.style.position != 'fixed' && element.style.position != 'absolute' ) {
 			
 			var newNode = document.createElement("div");
+			var nodeUUID="10000000-1000-4000-8000-100000000000".replace(/[018]/g, c =>
+    (+c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> +c / 4).toString(16)
+  ); /* courtesy https://stackoverflow.com/questions/105034/how-do-i-create-a-guid-uuid */
+			newNode.id=nodeUUID;
 			newNode.style.margin = getComputedStyle(element)["margin"];
 			newNode.style.top = rect.top+"px";
 			newNode.style.left = rect.left+"px";
@@ -192,6 +204,7 @@ class AdvancedDraggable {
 			newNode.style.width = rect.width+"px";
 			newNode.style.opacity = '0';
 			newNode.setAttribute('data-draggable-placeholder', 'true');
+			element.setAttribute('ktwp-de-placeholderId', nodeUUID); /* TO DO: In case I later on I want the reset function to remove the placeholder and put this element back where it was with the original display instead of just positioning it back over the original location. Use this to do it. */
 			element.parentNode.insertBefore(newNode,element);
 		}
 
