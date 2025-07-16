@@ -69,9 +69,9 @@ class AdvancedDraggableElements {
 
             /* CUSTOM - specific to michaelkupietz.com */
             array('selector' => '#page-adjuster-control','constraint' => 'vertical' ),
-            array('selector' => '#cli-control','constraint' => 'vertical' ),
+            array('selector' => '#cli-control, .ktwp-kupietabs-tab-div','constraint' => 'vertical' ),
             array('selector' => 'ul.drag > li'), 
-            array('selector' => '.hire-floating-div') 
+            array('selector' => '.hire-floating-div, .ktwp-kupietabs-panel-div') 
 
             /* EXAMPLES:
             array('selector' => 'body > div.blarg > div.gooph'), //free drag
