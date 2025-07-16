@@ -190,7 +190,7 @@ class AdvancedDraggable {
         
 /* copied from makedraggable; let's do these when clicked, not at load. */
 		 const rect = element.getBoundingClientRect();
-		if (element.style.position != 'fixed' && element.style.position != 'absolute' ) {
+		if (getComputedStyle(element).position != 'fixed' && getComputedStyle(element).position != 'absolute' /*previously used element.style.position, but this doesn't pick up attributes defined in css stylesheets, only on the element. */ ) {
 			
 			var newNode = document.createElement("div");
 			var nodeUUID="10000000-1000-4000-8000-100000000000".replace(/[018]/g, c =>
