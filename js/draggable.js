@@ -124,7 +124,7 @@ class AdvancedDraggable {
             element.style.bottom = margin + 'px';
             element.style.top = 'auto';
             element.style.right = 'auto';
-			element.style.zIndex = '999999'; /* moved from handleMouseDown just for corner-snapped elements; see not about it in that function. Ideally, eventually, it should check if the developer has set this with getComputedStyles and only assign it if not; but I don't need that level of detail right now, so, will procrastinate on it. */
+			element.style.zIndex = '999999'; /* moved from handleMouseDown just for corner-snapped elements; see note about it in that function. Ideally, eventually, it should check if the developer has set this with getComputedStyles and only assign it if not; but I don't need that level of detail right now, so, will procrastinate on it. */
 		    document.body.appendChild(element)
         } 
 		
@@ -210,7 +210,7 @@ class AdvancedDraggable {
 
         
        
-	if (newNode || (getComputedStyle(element).position == 'absolute')  /* position wasn't fixed - still need to do this for absolute or they stay positioned relative to the parent element, and if that's draggable too and been moved, then they "jump" and position themselves wrong when released. Once dragged, need to be fixed. */ )
+	if (newNode || (getComputedStyle(element).position == 'absolute')  /* position wasn't fixed - still need to do this for absolute too, or they stay positioned relative to the parent element, and if that's draggable too and been moved, then they "jump" and position themselves wrong when released once dragged. need to be positioned fixed. */ )
 	{
 		element.style.left = rect.left+"px";element.style.top = rect.top+"px"; 
 		element.style.position = 'fixed';
