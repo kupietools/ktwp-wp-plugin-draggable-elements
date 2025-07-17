@@ -3,6 +3,16 @@ Add a kupietools tab for this, with buttons for "show all draggable items" and "
 Make all kupietools tabs line up instead of hardcoding positions from top... use a CSS variable and have the plugins tell sessionStorage how many plugins have loaded, then compute the top.
 Make a settings panel for this, let users enter the config. Need to figure out how to let users enter the config object.
 */
+function offsetParentElement(childElement) {
+	/* offsetParent returns null in the following situations:
+
+    The element or any ancestor has the display property set to none.
+    The element has the position property set to fixed (Firefox returns <body>).
+    The element is <body> or <html>. */
+	if (getComputedStyle(childElement).position=='fixed'|| childElement == document.body) {return null;}
+	return childElement.offsetParent;
+}
+
 class AdvancedDraggable {
     constructor(config) {
         this.config = config;
@@ -65,7 +75,7 @@ class AdvancedDraggable {
                     }
                 });
             });
-            
+        
             // Start observing
             observer.observe(document.body, {
                 childList: true,
@@ -113,7 +123,10 @@ class AdvancedDraggable {
 		const constraintDesc= {"vertical":{"desc":"vertically","class":"vdrag"},"horizontal":{"desc":"horizontally","class":"hdrag"},"corners":{"desc":"to any corner","class":"cdrag"}};
 		
 		element.title=(element.title?element.title+" - ":"")+"☝ Drag me "+(constraintDesc[config.constraint]&&constraintDesc[config.constraint].desc?constraintDesc[config.constraint].desc+" ":"")+"to reposition!";
-		if (constraintDesc[config.constraint]&&constraintDesc[config.constraint].class) { element.classList.add("ktwp-de-"+constraintDesc[config.constraint].class);}
+		if (constraintDesc[config.constraint]&&constraintDesc[config.constraint].class) {
+			
+			element.classList.add("ktwp-de-"+constraintDesc[config.constraint].class)
+																						}
 		/* if I decide to make all children use move cursor, do this. const descendents = element.querySelectorAll("*"); /~ yes, I know how it's spelled. Ask Milo. ~/ */
         
         // For corner constraint, pre-position to a corner
@@ -184,8 +197,12 @@ class AdvancedDraggable {
     handleMouseDown(e) {
         if (e.button !== 0) return;
         e.preventDefault();
+		const element = e.target.closest('[data-draggable]');
+        const containingBlock = offsetParentElement(element);
+		
+		element.setAttribute("ktwp-de-container-top", containingBlock?getComputedStyle(containingBlock).top:"0");
+		element.setAttribute("ktwp-de-container-left", containingBlock?getComputedStyle(containingBlock).left:"0");
         
-        const element = e.target.closest('[data-draggable]');
         if (!element) return;
         
 /* copied from makedraggable; let's do these when clicked, not at load. */
@@ -210,12 +227,13 @@ class AdvancedDraggable {
 
         
        
-	if (newNode || (getComputedStyle(element).position == 'absolute')  /* position wasn't fixed - still need to do this for absolute too, or they stay positioned relative to the parent element, and if that's draggable too and been moved, then they "jump" and position themselves wrong when released once dragged. need to be positioned fixed. */ )
-	{
-		element.style.left = rect.left+"px";element.style.top = rect.top+"px"; 
-		element.style.position = 'fixed';
+	if ( (newNode || (getComputedStyle(element).position == 'xabsolute')) /* position wasn't fixed - still need to do this for absolute too, or they stay positioned relative to the parent element, and if that's draggable too and been moved, then they "jump" and position themselves wrong when released once dragged. need to be positioned fixed. */ )
+	{  
+		element.style.left = rect.left +window.scrollX -parseInt(element.getAttribute("ktwp-de-container-left")) +"px";
+		element.style.top = rect.top+window.scrollY-parseInt(element.getAttribute("ktwp-de-container-top")) +"px"; 
+		element.style.position = 'absolute'; /* FIXED TO ABSOLUTE - will never be fixed if it gets here, so, no ternary operator like everywhere else */
 		element.style.margin="0"/*otherwise jumps when you touch it */;
-		document.body.appendChild(element);/* if the element wasn't fixed, move it to a child of the body, because CSS transforms on an ancestor (or similar things) can create a new stacking context, and "fixed at 0,0" follows the stacking context root element, not necessarily the body. If it was already fixed, we'll leave it to the original page code to put it in the context it should be in. */ 
+		(offsetParentElement(element) ?? document.body).appendChild(element);/* if the element wasn't fixed, move it to a child of the body, because CSS transforms on an ancestor (or similar things) can create a new stacking context, and "fixed at 0,0" follows the stacking context root element, not necessarily the body. If it was already fixed, we'll leave it to the original page code to put it in the context it should be in. */ 
 	}
 
 /* END copied from makedraggable */
@@ -237,7 +255,9 @@ class AdvancedDraggable {
 
 HOWEVER: The exception to this is the corner snap. Because this will "snap" to a corner after you release, it is possible to drag it, still have it be visible, and then on release have it disappear behind, say, a page header or menu heading and have it be irretrievable. So we'll assume corner-snapped elements always stay in front. BUT, we'll do that where the original corner is set up in makeDraggable.
  element.style.zIndex = '999999'; */
+		
         element.classList.add('is-dragging');
+				
        //no don't need it: element.classList.add('is-held-draggable'); // Add this line for the visual indicator
     }
 
@@ -375,8 +395,8 @@ HOWEVER: The exception to this is the corner snap. Because this will "snap" to a
         let newY = e.clientY - (elementHeight / 2);
         newY = Math.max(0, Math.min(newY, viewportHeight - elementHeight));
         
-        this.activeElement.style.position = 'fixed';
-        this.activeElement.style.top = newY + 'px';
+        this.activeElement.style.position = (this.activeElement.getAttribute('data-ktwp-de-position')=='fixed'?'fixed':'absolute'); /* FIXED TO ABSOLUTE */
+        this.activeElement.style.top = newY +window.scrollY /* - parseInt(this.activeElement.getAttribute("ktwp-de-container-top"))  */+ 'px';
         this.activeElement.style.bottom = 'auto';
        
 	    const viewportWidth = window.innerWidth;
@@ -386,7 +406,7 @@ HOWEVER: The exception to this is the corner snap. Because this will "snap" to a
         let newX = e.clientX - (elementWidth / 2);
         newX = Math.max(0, Math.min(newX, viewportWidth - elementWidth));
         
-        this.activeElement.style.left = newX + 'px'; 
+        this.activeElement.style.left = newX+window.scrollX /* - parseInt(this.activeElement.getAttribute("ktwp-de-container-left")) */ + 'px'; 
 	    this.activeElement.style.right = 'auto';
        
     }
@@ -400,10 +420,10 @@ HOWEVER: The exception to this is the corner snap. Because this will "snap" to a
         let newY = e.clientY - (elementHeight / 2);
         newY = Math.max(0, Math.min(newY, viewportHeight - elementHeight));
         
-        if (this.activeElement.style.position != 'fixed') {this.activeElement.style.left = rect.left+'px'; /* otherwise will jump when set to fixed, if page has been scrolled */}
+       //NOT NEEDED ANYMORE if (this.activeElement.style.position != 'fixed') {this.activeElement.style.left = rect.left+'px'; /* otherwise will jump when set to fixed, if page has been scrolled */}
 		 
-		this.activeElement.style.position = 'fixed';
-        this.activeElement.style.top = newY + 'px';
+		this.activeElement.style.position = (this.activeElement.getAttribute('data-ktwp-de-position')=='fixed'?'fixed':'absolute'); /* FIXED TO ABSOLUTE */
+        this.activeElement.style.top = newY+window.scrollY /* - parseInt(this.activeElement.getAttribute("ktwp-de-container-top")) */ + 'px';
         this.activeElement.style.bottom = 'auto';
         // Don't change left/right positioning
     }
@@ -418,11 +438,11 @@ HOWEVER: The exception to this is the corner snap. Because this will "snap" to a
         let newX = e.clientX - (elementWidth / 2);
         newX = Math.max(0, Math.min(newX, viewportWidth - elementWidth));
 				//console.log("AAA this.activeElement.style.position",this.activeElement.style.position,"rect.top",rect.top,"this.activeElement.style.top",this.activeElement.style.top);
-        if (this.activeElement.style.position != 'fixed') {this.activeElement.style.top = rect.top+'px'; /* otherwise will jump when set to fixed, if page has been scrolled */}
-        this.activeElement.style.position = 'fixed';
+       //NOT NEEDED ANYMORE if (this.activeElement.style.position != 'fixed') {this.activeElement.style.top = rect.top+'px'; /* otherwise will jump when set to fixed, if page has been scrolled */}
+        this.activeElement.style.position = (this.activeElement.getAttribute('data-ktwp-de-position')=='fixed'?'fixed':'absolute'); /* FIXED TO ABSOLUTE */
 		
 		//console.log("BBB this.activeElement.style.position",this.activeElement.style.position,"rect.top",rect.top,"this.activeElement.style.top",this.activeElement.style.top);
-        this.activeElement.style.left = newX + 'px';
+        this.activeElement.style.left = newX+window.scrollX  /*- Number(this.activeElement.getAttribute["ktwp-de-container-left"]) */+ 'px';
 		this.activeElement.style.right = 'auto';
 
         // Don't change left/right positioning
@@ -449,9 +469,9 @@ HOWEVER: The exception to this is the corner snap. Because this will "snap" to a
 				if (this.activeElement.getAttribute("data-ktwp-de-position")!="fixed" )
 				{   
 			
-				this.activeElement.style.left = absoluteX + 'px';
-				this.activeElement.style.top = absoluteY + 'px';
-				this.activeElement.style.position="absolute";
+			/* Thing we don't need this anymore...	this.activeElement.style.left = absoluteX + 'px';
+				this.activeElement.style.top = absoluteY + 'px'; 
+				this.activeElement.style.position="absolute";*/
 				/* nah, we just won't set the zIndex at all this.activeElement.style.zIndex=this.activeElement.getAttribute("data-ktwp-de-zIndex");	*/
 					
 				}
@@ -461,7 +481,9 @@ HOWEVER: The exception to this is the corner snap. Because this will "snap" to a
 			sessionStorage.setItem("ktwp-de-elem-"+this.activeElement.id+"-y",this.activeElement.style.top);
 					sessionStorage.setItem("ktwp-de-elem-"+this.activeElement.id+"-r",this.activeElement.style.right);
 			sessionStorage.setItem("ktwp-de-elem-"+this.activeElement.id+"-b",this.activeElement.style.bottom);}
-        this.activeElement.classList.remove('is-dragging');
+     
+		this.activeElement.classList.remove('is-dragging');
+	
      //no don't need it:   this.activeElement.classList.remove('is-held-draggable'); // Remove this line for the visual indicator
        /* this.activeElement.style.zIndex = ''; No, let's leave it in front, so it's not possible to drag it behind something else accidentally */
         
