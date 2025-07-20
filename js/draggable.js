@@ -9,6 +9,19 @@ class AdvancedDraggable {
         this.activeElement = null;
         this.isDragging = false;
         this.dragStarted = false;
+		
+		
+        // --- START CHANGES: ADD THESE LINES ---
+        // These will be used specifically for tracking touch movement
+        this.touchStartX = 0; // Stores initial X coordinate of a touch for threshold check
+       this.touchStartY = 0; // Stores initial Y coordinate of a touch for threshold check
+       this.touchMovementThreshold = 10; // Pixels: If touch moves less than this, it's considered a click.
+                                         // Adjust this value (e.g., 5-20) based on desired tap sensitivity.
+       this.isTouchSequenceActive = false; // Flag to track a valid single-finger touch interaction
+    
+		//On mobile, a drag can be triggered with vanishingly small movements, which will suppress the 'click' it would otherwise register as on, say, desktop, because the movement really is so tiny the user thinks it's a click. So on mobile, we'll only consider it a drag after the touch has moved more than a threshold.
+        // --- END CHANGES ---
+		
         this.init();
     }
 
@@ -124,7 +137,7 @@ class AdvancedDraggable {
             element.style.bottom = margin + 'px';
             element.style.top = 'auto';
             element.style.right = 'auto';
-			element.style.zIndex = '999999'; /* moved from handleMouseDown just for corner-snapped elements; see note about it in that function. Ideally, eventually, it should check if the developer has set this with getComputedStyles and only assign it if not; but I don't need that level of detail right now, so, will procrastinate on it. */
+			element.style.zIndex = '9999'; /* moved from handleMouseDown just for corner-snapped elements; see note about it in that function. Ideally, eventually, it should check if the developer has set this with getComputedStyles and only assign it if not; but I don't need that level of detail right now, so, will procrastinate on it. */
 		    document.body.appendChild(element)
         } 
 		
@@ -132,10 +145,10 @@ class AdvancedDraggable {
         element.addEventListener('dragstart', (e) => e.preventDefault());
         
         // --- Touchscreen Support ---
-        element.addEventListener('touchstart', (e) => this.handleTouchStart(e));
-        element.addEventListener('touchmove', (e) => this.handleTouchMove(e));
-        element.addEventListener('touchend', (e) => this.handleTouchEnd(e));
-        element.addEventListener('touchcancel', (e) => this.handleTouchEnd(e)); // handle when a touch is interrupted
+        element.addEventListener('touchstart', (e) => this.handleTouchStart(e), {passive: false});
+        element.addEventListener('touchmove', (e) => this.handleTouchMove(e), {passive: false});
+        element.addEventListener('touchend', (e) => this.handleTouchEnd(e), {passive: false});
+        element.addEventListener('touchcancel', (e) => this.handleTouchEnd(e), {passive: false}); // handle when a touch is interrupted
 
         // Prevent clicks during drag
         element.addEventListener('click', (e) => {
@@ -178,6 +191,7 @@ class AdvancedDraggable {
 		element.style.top=absoluteY;	
 			element.style.right=absoluteR;
 		element.style.bottom=absoluteB;	
+																				 element.classList.add('ktwp-de-beenDragged');
 		}
     }
 
@@ -233,19 +247,31 @@ class AdvancedDraggable {
         document.addEventListener('mousemove', this.handleMouseMove.bind(this));
         document.addEventListener('mouseup', this.handleMouseUp.bind(this));
         
-       /* Originally I always set the z-index to 999999, back when objects stayed position 'fixed' after dragging and didn't scroll with the page. But nah, we just won't set the zIndex at all, so we don't have to reset it on mouseup. Otherwise, could have a situation where it disappears behind something on mouseup; but without setting it, could scroll over page header. This way, it's developer's job to set Z index properly on element, not plugin's job to make assumptions. 
+       /* Originally I always set the z-index to 9999, back when objects stayed position 'fixed' after dragging and didn't scroll with the page. But nah, we just won't set the zIndex at all, so we don't have to reset it on mouseup. Otherwise, could have a situation where it disappears behind something on mouseup; but without setting it, could scroll over page header. This way, it's developer's job to set Z index properly on element, not plugin's job to make assumptions. 
 
 HOWEVER: The exception to this is the corner snap. Because this will "snap" to a corner after you release, it is possible to drag it, still have it be visible, and then on release have it disappear behind, say, a page header or menu heading and have it be irretrievable. So we'll assume corner-snapped elements always stay in front. BUT, we'll do that where the original corner is set up in makeDraggable.
- element.style.zIndex = '999999'; */
+ element.style.zIndex = '9999'; */
         element.classList.add('is-dragging');
        //no don't need it: element.classList.add('is-held-draggable'); // Add this line for the visual indicator
     }
 
     // --- New Touch Event Handlers ---
-    handleTouchStart(e) {
+    /* old handlers didn't actually work on mobile, something about preventDefault. Keeping around for now for reference, I want to compare and see what the actual problem was. 
+OLD_didnt_work_on_mobile_handleTouchStart(e) {
         e.preventDefault(); // Prevent scrolling and zooming
         const touch = e.touches[0];
-        // Simulate a mouse down event for reusability
+		
+		
+    // --- START CHANGES TO PREVENT TRIGGERING DRAG ON VANISHINGLY TINY TOUCHES, like can happen on mobile---
+    // Store the initial touch coordinates for threshold calculation
+   
+    this.touchStartX = touch.clientX;
+    this.touchStartY = touch.clientY;
+    // --- END CHANGES ---
+
+    // Simulate a mouse down event for reusability.
+    // This will set `this.dragStarted = false;` initially, which is what we want.
+ 
         this.handleMouseDown({
             button: 0, // Left click
             target: touch.target,
@@ -254,16 +280,36 @@ HOWEVER: The exception to this is the corner snap. Because this will "snap" to a
             preventDefault: () => {} // Dummy preventDefault
         });
         const element = e.target.closest('[data-draggable]');
-       /* no don't need it
- if (element) {
-            element.classList.add('is-held-draggable'); // Add this line for the visual indicator
-        } */
+       // no don't need it if (element) { element.classList.add('is-held-draggable'); } // Add this line for the visual indicator
+     
     }
 
-    handleTouchMove(e) {
+    OLD_didnt_work_on_mobile_handleTouchMove(e) {
         e.preventDefault(); // Prevent scrolling
         if (!this.activeElement || !this.isDragging) return;
         const touch = e.touches[0];
+		
+		
+		
+    // --- START CHANGES: ADD THESE LINES to prevent vanishingly small touches from triggering a drag, as can happen on mobile ---
+    // Calculate the distance moved from the initial touch point
+    const currentTouchX = touch.clientX;
+    const currentTouchY = touch.clientY;
+    const deltaX = Math.abs(currentTouchX - this.touchStartX);
+    const deltaY = Math.abs(currentTouchY - this.touchStartY);
+
+    // If the movement exceeds the threshold, only then set dragStarted and proceed with movement
+    if (deltaX > this.touchMovementThreshold || deltaY > this.touchMovementThreshold) {
+        this.dragStarted = true; // Mark as a drag
+    } else {
+        // If movement is below threshold, ensure dragStarted remains false for potential click
+        this.dragStarted = false;
+        return; // Don't process movement if below threshold
+    }
+    // --- END CHANGES ---
+
+    // Original logic that simulates a mouse move event, now only runs if dragStarted is true
+   
         // Simulate a mouse move event
         this.handleMouseMove({
             clientX: touch.clientX,
@@ -276,7 +322,7 @@ HOWEVER: The exception to this is the corner snap. Because this will "snap" to a
         this._lastTouchY = touch.clientY;
     }
 
-    handleTouchEnd(e) {
+    OLD_didnt_work_on_mobile_handleTouchEnd(e) {
         if (!this.activeElement) return;
         // Simulate a mouse up event
         this.handleMouseUp({
@@ -293,9 +339,93 @@ HOWEVER: The exception to this is the corner snap. Because this will "snap" to a
          document.removeEventListener('touchcancel', this.handleTouchEnd.bind(this));
         
         // Ensure 'is-held-draggable' is removed on touch end
-   /* no don't need it:     if (this.activeElement) {
-            this.activeElement.classList.remove('is-held-draggable');
-        } */
+   // no don't need it anymore:     if (this.activeElement) { this.activeElement.classList.remove('is-held-draggable');} 
+    }
+END old handlers */
+	
+	
+handleTouchStart(e) {
+        if (e.touches.length !== 1) { // Only handle single-finger touches for dragging
+            this.isTouchSequenceActive = false;
+            return;
+        }
+e.stopPropagation();
+        const touch = e.touches[0];
+        const element = touch.target.closest('[data-draggable]');
+
+        if (!element) {
+            this.isTouchSequenceActive = false;
+            return;
+        }
+
+        this.isTouchSequenceActive = true;
+        this.touchStartX = touch.clientX;
+        this.touchStartY = touch.clientY;
+        this.dragStarted = false; // Reset drag state for new touch sequence
+
+        // REUSE existing handleMouseDown logic to prepare the element.
+        // This avoids duplicating all the placeholder/fixed positioning code.
+        this.handleMouseDown({
+            button: 0, // Simulate left click button
+            target: element,
+            clientX: touch.clientX,
+            clientY: touch.clientY,
+            preventDefault: () => {} // Provide a dummy preventDefault
+        });
+    }
+
+handleTouchMove(e) {
+        if (!this.activeElement || !this.isDragging || !this.isTouchSequenceActive || e.touches.length !== 1) {
+            return;
+        }
+
+        const touch = e.touches[0];
+        const currentTouchX = touch.clientX;
+        const currentTouchY = touch.clientY;
+
+        const deltaX = Math.abs(currentTouchX - this.touchStartX);
+        const deltaY = Math.abs(currentTouchY - this.touchStartY);
+
+        if (!this.dragStarted) { // Only decide if it's a drag if it hasn't been confirmed yet
+            if (deltaX > this.touchMovementThreshold || deltaY > this.touchMovementThreshold) {
+                this.dragStarted = true; // Confirmed as a drag
+                // PREVENT DEFAULT HERE: This suppresses the click event for this confirmed drag.
+                e.preventDefault();
+                // console.log('AdvancedDraggable: Touch movement exceeded threshold. Drag confirmed and default prevented (to suppress click).');
+            } else {
+                // Not enough movement yet to be a drag. DO NOT preventDefault().
+                // This allows the browser to interpret it as a tap and fire a native click.
+                // console.log('AdvancedDraggable: Touch movement still below threshold. Not a drag, default NOT prevented.');
+                return; // Stop processing further touchmove if not a confirmed drag
+            }
+        } else {
+            // If already confirmed as a drag, continue preventing default.
+            e.preventDefault();
+            // console.log('AdvancedDraggable: Continuing drag. Default prevented.');
+        }
+
+        // Reuse handleMouseMove for actual element positioning
+        const simulatedMouseEvent = {
+            clientX: currentTouchX,
+            clientY: currentTouchY,
+            movementX: currentTouchX - (this._lastTouchX !== undefined ? this._lastTouchX : currentTouchX),
+            movementY: currentTouchY - (this._lastTouchY !== undefined ? this._lastTouchY : currentTouchY),
+            preventDefault: () => {}
+        };
+        this.handleMouseMove(simulatedMouseEvent);
+        this._lastTouchX = currentTouchX; // Store current position for next movement calculation
+        this._lastTouchY = currentTouchY;
+    }
+	handleTouchEnd(e) {
+        if (!this.activeElement || !this.isTouchSequenceActive) return;
+
+        this.isTouchSequenceActive = false; // End the active touch sequence
+        this._lastTouchX = undefined; // Clear last touch position
+        this._lastTouchY = undefined;
+
+        // Reuse handleMouseUp for common cleanup.
+        // This is where common cleanup logic should be centralized.
+        this.handleMouseUp(e);
     }
     // --- End New Touch Event Handlers ---
 
@@ -304,7 +434,8 @@ HOWEVER: The exception to this is the corner snap. Because this will "snap" to a
         
         if (!this.dragStarted) {
             this.dragStarted = true;
-			
+			   this.activeElement.classList.add('ktwp-de-beenDragged'); /* mark what's been dragged, so other KTWP plugins can manage if nec, another plugin may want to restore positions or only act on undragged elements */
+     
         }
 		if (this.deltaX==this.deltaY && this.deltaX==0)
 		{this.deltaX = e.movementX;
