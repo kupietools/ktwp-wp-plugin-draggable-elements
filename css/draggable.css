@@ -24,11 +24,11 @@ background-image: url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/20
 	/* transition-duration: 0s; */
 	 	
 }
- [data-draggable="true"]:hover:not(.is-dragging)::before { /* don't flash the arrows while dragging */
+ [data-draggable="true"]:hover:not(.is-dragging):not(.ktwp-de-disablehover)::before { /* not(.ktwp-de-disablehover) so don't flash the arrows while dragging */
 	
    
    animation: animateArrows 2s linear; 
-	 animation-delay:2.5s;
+	 animation-delay:1.5s;
 }
 
 /* takign advantage of inheritance rules here */
@@ -71,7 +71,7 @@ background-image: url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/20
 	clip-path: polygon(-100% -100%, -100% 200%, -1% 200%, -1% -1%, 101% -1%, 101% 101%, -1% 101%, -1% 200%, 200% 200%, 200% -100%) 
 }
 
- *[data-draggable="true"]:not(.is-dragging):hover::after {
+ *[data-draggable="true"]:not(.is-dragging):not(.ktwp-de-disablehover):hover::after {
 	opacity: .8;
 	transition-delay: 2.5s;
 	transition-duration: 0.5s;

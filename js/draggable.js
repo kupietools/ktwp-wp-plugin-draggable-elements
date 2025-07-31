@@ -123,6 +123,7 @@ class AdvancedDraggable {
 	/* nah, we just won't set the zIndex at all 	element.setAttribute('data-ktwp-de-zIndex', getComputedStyle(element)["zIndex"]) */
         element.style.cursor = 'move';
         element.style.userSelect = 'none';
+		element.style.touchAction="none";
 		const constraintDesc= {"vertical":{"desc":"vertically","class":"vdrag"},"horizontal":{"desc":"horizontally","class":"hdrag"},"corners":{"desc":"to any corner","class":"cdrag"}};
 		
 		element.title=(element.title?element.title+" - ":"")+"☝ Drag me "+(constraintDesc[config.constraint]&&constraintDesc[config.constraint].desc?constraintDesc[config.constraint].desc+" ":"")+"to reposition!";
@@ -345,12 +346,16 @@ END old handlers */
 	
 	
 handleTouchStart(e) {
+	
+        const touch = e.touches[0];
+	touch.target.classList.remove("ktwp-de-disablehover");
+	
         if (e.touches.length !== 1) { // Only handle single-finger touches for dragging
             this.isTouchSequenceActive = false;
             return;
         }
+
 e.stopPropagation();
-        const touch = e.touches[0];
         const element = touch.target.closest('[data-draggable]');
 
         if (!element) {
@@ -391,6 +396,8 @@ handleTouchMove(e) {
                 this.dragStarted = true; // Confirmed as a drag
                 // PREVENT DEFAULT HERE: This suppresses the click event for this confirmed drag.
                 e.preventDefault();
+				this.activeElement.classList.add("ktwp-de-disablehover"); /* so hover state doesn't trigger after drag */
+/* see if removig this ruins ios drag				e.stopImmediatePropagation(); */
                 // console.log('AdvancedDraggable: Touch movement exceeded threshold. Drag confirmed and default prevented (to suppress click).');
             } else {
                 // Not enough movement yet to be a drag. DO NOT preventDefault().
@@ -401,6 +408,7 @@ handleTouchMove(e) {
         } else {
             // If already confirmed as a drag, continue preventing default.
             e.preventDefault();
+		/* see if removig this ruins ios drag			e.stopImmediatePropagation(); */
             // console.log('AdvancedDraggable: Continuing drag. Default prevented.');
         }
 
@@ -417,6 +425,7 @@ handleTouchMove(e) {
         this._lastTouchY = currentTouchY;
     }
 	handleTouchEnd(e) {
+
         if (!this.activeElement || !this.isTouchSequenceActive) return;
 
         this.isTouchSequenceActive = false; // End the active touch sequence
