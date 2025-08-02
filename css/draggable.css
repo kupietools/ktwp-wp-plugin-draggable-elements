@@ -12,7 +12,7 @@
 	/* background-color: rgba(255, 255, 255, 0.1); */
 	background-repeat: no-repeat;
 	background-position: center center;
-	background-size: contain;
+	background-size: clamp(60px,50%,160px); /* was "contain", but wanted it not to overwhelm big panels */
 	pointer-events: none;
 	z-index: 2;
 	overflow: visible;
@@ -96,11 +96,11 @@ background-image: url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/20
 
 
 @keyframes animateArrows {
-  0%,33%,66%,100% {
+  0%,25%,50%,75%,100% {
     opacity: 0;
   }
-  17%,50%, 83% {
-    opacity: .9;
+  12%,37%,62%, 83% {
+    opacity: .98;
   }
 }
 
