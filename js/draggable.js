@@ -11,6 +11,13 @@ class AdvancedDraggable {
         this.dragStarted = false;
 		
 		
+		//Additions for using animation frames
+		this.lastPosition = { x: 0, y: 0 };
+        this.nextFrame = null;
+        this.pendingUpdate = false;
+        //End Additions for using animation frames
+		
+		
         // --- START CHANGES: ADD THESE LINES ---
         // These will be used specifically for tracking touch movement
         this.touchStartX = 0; // Stores initial X coordinate of a touch for threshold check
@@ -199,12 +206,21 @@ class AdvancedDraggable {
     handleMouseDown(e) {
         if (e.button !== 0) return;
         e.preventDefault();
+		
+		
         
         const element = e.target.closest('[data-draggable]');
         if (!element) return;
         
 /* copied from makedraggable; let's do these when clicked, not at load. */
-		 const rect = element.getBoundingClientRect();
+		const rect = element.getBoundingClientRect();
+/* begin gemini fix for "jump" when assumed to be cllicking in middle */
+		this.offsetX = e.clientX - rect.left; 
+this.offsetY = e.clientY - rect.top;
+	
+		
+		/* end gemini fix for "jump" when assumed to be cllicking in middle */
+
 		if (getComputedStyle(element).position != 'fixed' && getComputedStyle(element).position != 'absolute' /*previously used element.style.position, but this doesn't pick up attributes defined in css stylesheets, only on the element. */ ) {
 			
 			var newNode = document.createElement("div");
@@ -438,34 +454,51 @@ handleTouchMove(e) {
     }
     // --- End New Touch Event Handlers ---
 
-    handleMouseMove(e) {
-        if (!this.activeElement || !this.isDragging) return;
-        
-        if (!this.dragStarted) {
-            this.dragStarted = true;
-			   this.activeElement.classList.add('ktwp-de-beenDragged'); /* mark what's been dragged, so other KTWP plugins can manage if nec, another plugin may want to restore positions or only act on undragged elements */
-     
-        }
-		if (this.deltaX==this.deltaY && this.deltaX==0)
-		{this.deltaX = e.movementX;
-			this.deltaY = e.movementY;
-			}
-        
-        const config = this.activeElement.draggableConfig;
-        
-        if (config.constraint === 'Xcorners') { //disabling, will do this on mouseup
-			//this.handleCornerMovement(e) NOT ANYMORE
-            if (e.deltaX > e.deltaY) { this.handleHorizontalMovement(e);} else { this.handleVerticalMovement(e);} 
-        } else if (config.constraint === 'vertical') {
-            this.handleVerticalMovement(e);
-        } else if (config.constraint === 'horizontal') {
-            this.handleHorizontalMovement(e);
-        } else  {
-            this.handleFreeMovement(e);
-        }
-        // Add other constraint types here if needed
+  handleMouseMove(e) {
+    if (!this.activeElement || !this.isDragging) return;
+
+    if (!this.dragStarted) {
+        this.dragStarted = true;
+        this.activeElement.classList.add('ktwp-de-beenDragged');
     }
 
+    // Store the last known position from the event.
+    this.lastPosition.x = e.clientX;
+    this.lastPosition.y = e.clientY;
+
+    // Check if an update is already pending. If not, request a new animation frame.
+    if (!this.pendingUpdate) {
+        this.pendingUpdate = true;
+        this.nextFrame = requestAnimationFrame(() => this.updateElementPosition());
+    }
+}
+
+updateElementPosition() {
+    if (!this.activeElement || !this.isDragging) {
+        this.pendingUpdate = false;
+        this.nextFrame = null;
+        return;
+    }
+
+    const { x, y } = this.lastPosition;
+    const config = this.activeElement.draggableConfig;
+
+    if (config.constraint === 'vertical') {
+        this.handleVerticalMovement({ clientY: y });
+    } else if (config.constraint === 'horizontal') {
+        this.handleHorizontalMovement({ clientX: x });
+    } else if (config.constraint === 'corners') {
+        // The corners constraint allows free dragging and then snaps on mouseup.
+        // So, we treat it like 'free' movement during the drag.
+        this.handleFreeMovement({ clientX: x, clientY: y });
+    } else {
+        // This is the default 'free' movement.
+        this.handleFreeMovement({ clientX: x, clientY: y });
+    }
+
+    this.pendingUpdate = false;
+    this.nextFrame = null;
+}
     handleCornerMovement(e) {
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
@@ -512,7 +545,7 @@ handleTouchMove(e) {
         const elementHeight = rect.height;
         
         // Keep horizontal position, only change vertical
-        let newY = e.clientY - (elementHeight / 2);
+        let newY = e.clientY - this.offsetY; //(elementHeight / 2); caused "jump" because assumed always clicked in center; caused very large draggables to have problems
         newY = Math.max(0, Math.min(newY, viewportHeight - elementHeight));
         
         this.activeElement.style.position = 'fixed';
@@ -523,7 +556,7 @@ handleTouchMove(e) {
         const elementWidth = rect.width;
         
         // Keep horizontal position, only change vertical
-        let newX = e.clientX - (elementWidth / 2);
+        let newX = e.clientX - this.offsetX; //(elementWidth / 2); caused "jump" because assumed always clicked in center; caused very large draggables to have problems
         newX = Math.max(0, Math.min(newX, viewportWidth - elementWidth));
         
         this.activeElement.style.left = newX + 'px'; 
@@ -537,7 +570,7 @@ handleTouchMove(e) {
         const elementHeight = rect.height;
         
         // Keep horizontal position, only change vertical
-        let newY = e.clientY - (elementHeight / 2);
+        let newY = e.clientY - this.offsetY; //(elementHeight / 2); caused "jump" because assumed always clicked in center; caused very large draggables to have problems
         newY = Math.max(0, Math.min(newY, viewportHeight - elementHeight));
         
         if (this.activeElement.style.position != 'fixed') {this.activeElement.style.left = rect.left+'px'; /* otherwise will jump when set to fixed, if page has been scrolled */}
@@ -555,7 +588,7 @@ handleTouchMove(e) {
         const elementWidth = rect.width;
         
         // Keep horizontal position, only change vertical
-        let newX = e.clientX - (elementWidth / 2);
+        let newX = e.clientX - this.offsetX; //(elementWidth / 2); caused "jump" because assumed always clicked in center; caused very large draggables to have problems
         newX = Math.max(0, Math.min(newX, viewportWidth - elementWidth));
 				//console.log("AAA this.activeElement.style.position",this.activeElement.style.position,"rect.top",rect.top,"this.activeElement.style.top",this.activeElement.style.top);
         if (this.activeElement.style.position != 'fixed') {this.activeElement.style.top = rect.top+'px'; /* otherwise will jump when set to fixed, if page has been scrolled */}
@@ -571,7 +604,20 @@ handleTouchMove(e) {
 	
     handleMouseUp(e) {
         if (!this.activeElement) return;
-        
+				//begin additions for animation frames
+		  // Cancel any pending animation frame
+    if (this.nextFrame) {
+        cancelAnimationFrame(this.nextFrame);
+        this.nextFrame = null;
+    }
+    this.pendingUpdate = false;
+    
+    this.offsetX = null;
+    this.offsetY = null;
+		//end additions for animation frames
+        this.offsetX = null;
+this.offsetY = null;
+
         //console.log('Drag ended');
         //
          const config = this.activeElement.draggableConfig;
