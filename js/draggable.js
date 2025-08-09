@@ -143,7 +143,7 @@ class AdvancedDraggable {
   console.log("element",element,"theDragElement",theDragElement,"qs",element.querySelector(config.dragElement));
 		const newDiv = document.createElement("div");
 		newDiv.className="ktwp-de-effectsDiv";
-		newDiv.style="position:absolute !important; left:0 !important;top:0 !important;bottom:0 !important;right:0 !important;background:transparent !important;filter:none !important;backdropFilter:none !important;";
+		newDiv.style="position:absolute !important; left:0 !important;top:0 !important;bottom:0 !important;right:0 !important;background:transparent !important;filter:none !important;backdropFilter:none !important;border-radius:inherit;";
 		theDragElement.prepend(newDiv);
 		if(getComputedStyle(theDragElement).position == "static" ){element.style.position="relative";/* need this so newDiv is correctly sized and positioned. */}
  }
