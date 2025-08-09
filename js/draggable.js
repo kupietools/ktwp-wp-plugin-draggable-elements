@@ -137,6 +137,18 @@ class AdvancedDraggable {
 		if (constraintDesc[config.constraint]&&constraintDesc[config.constraint].class) { element.classList.add("ktwp-de-"+constraintDesc[config.constraint].class);}
 		/* if I decide to make all children use move cursor, do this. const descendents = element.querySelectorAll("*"); /~ yes, I know how it's spelled. Ask Milo. ~/ */
         
+/* Going to try adding a child div to hold animations and effects so as not to overwrite existing fancy css stuff on draggable item's ::before and ::after. */console.log(config,config.hasOwnProperty("dragElement"));
+		if((config.hasOwnProperty("dragElement") && config.dragElement != '') || !config.hasOwnProperty("dragElement"))
+ {const theDragElement = config.hasOwnProperty("dragElement")?element.querySelector(config.dragElement):element;
+  console.log("element",element,"theDragElement",theDragElement,"qs",element.querySelector(config.dragElement));
+		const newDiv = document.createElement("div");
+		newDiv.className="ktwp-de-effectsDiv";
+		newDiv.style="position:absolute !important; left:0 !important;top:0 !important;bottom:0 !important;right:0 !important;background:transparent !important;filter:none !important;backdropFilter:none !important;";
+		theDragElement.prepend(newDiv);
+		if(getComputedStyle(theDragElement).position == "static" ){element.style.position="relative";/* need this so newDiv is correctly sized and positioned. */}
+ }
+        
+/* END Going to try adding a child div to hold animations and effects so as not to overwrite existing fancy css stuff on draggable item's ::before and ::after. */
         // For corner constraint, pre-position to a corner
         if (config.constraint === 'corners') {
             const margin = config.cornerMargin || 25;

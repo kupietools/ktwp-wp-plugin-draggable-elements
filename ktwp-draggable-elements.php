@@ -57,7 +57,8 @@ class AdvancedDraggableElements {
 
             array('selector' => 'CSSSelector' [, 
                   'constraint' => 'corners|vertical|horizontal', 
-                  'cornerMargin' => marginInPx ] 
+                  'cornerMargin' => marginInPx,
+				  'dragElement' => ''|'Child Element CSS selector'] 
                  ) 
                   */
 
@@ -67,11 +68,12 @@ class AdvancedDraggableElements {
             array('selector' => '.hdrag','constraint' => 'horizontal' ),
             array('selector' => '.fdrag' ),
 
-            /* CUSTOM - specific to michaelkupietz.com */
+            /* CUSTOM - specific to michaelkupietz.com and other kupietools plugins; you'll want to changes these, unless you don't.  */
             array('selector' => '#page-adjuster-control','constraint' => 'vertical' ),
             array('selector' => '#cli-control, .ktwp-kupietabs-tab-div','constraint' => 'vertical' ),
             array('selector' => 'ul.drag > li'), 
-            array('selector' => '.hire-floating-div, .ktwp-kupietabs-panel-div') 
+            array('selector' => '.hire-floating-div, .ktwp-kupietabs-panel-div'),
+			 array('selector' => '.octagon-center')
 
             /* EXAMPLES:
             array('selector' => 'body > div.blarg > div.gooph'), //free drag
