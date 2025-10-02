@@ -102,7 +102,128 @@ class AdvancedDraggable {
 
     setupDraggables() {
         //console.log('Setting up draggables:', this.config);
-        
+        const cssRules=`
+/* no longer needed .is-dragging::before, */ *[data-draggable=true] .ktwp-de-effectsDiv::before {
+	z-index:999999;
+	opacity: 0;
+  transition: opacity .1s ease-in;
+  
+  transition-delay: 0s;
+	content: '';
+	position: absolute;
+	top: -40%;
+	left: -40%;
+	right: -40%;
+	bottom: -40%;
+	/* background-color: rgba(255, 255, 255, 0.1); */
+	background-repeat: no-repeat;
+	background-position: center center;
+	background-size: clamp(60px,50%,160px); /* was "contain", but wanted it not to overwhelm big panels */
+	pointer-events: none;
+	
+	overflow: visible;
+background-image: url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\"><path stroke=\"rgba(190,190,190,1)\" stroke-width=\".7\"  fill=\"rgba(0,0,0,0.3)\" d=\"M8.326 5.327 12.03 1l3.705 4.327h-1.853v4.349h-3.705V5.326zM15.736 18.734 12.03 23.06l-3.706-4.327h1.853v-4.348h3.705v4.348zM18.734 8.325l4.327 3.706-4.327 3.705v-1.853h-4.348v-3.705h4.348zM5.327 15.736 1 12.03l4.327-3.706v1.853h4.349v3.705H5.326z\"/></svg>');}
+
+
+.ktwp-de-effectsDiv{position:absolute !important; left:0 !important;top:0 !important;bottom:0 !important;right:0 !important;background:transparent !important;filter:none !important;backdropFilter:none !important;border-radius:inherit;pointer-events:none;}
+.is-dragging .ktwp-de-effectsDiv::before {
+	opacity: .5;
+	/* transition-delay: 0s; */
+	/* transition-duration: 0s; */
+	 	
+}
+*[data-draggable="true"]:hover:not(.is-dragging):not(.ktwp-de-disablehover) .ktwp-de-effectsDiv::before { /* not(.ktwp-de-disablehover) so don't flash the arrows while dragging */
+   animation: animateArrows 2s linear; 
+	 animation-delay:1.5s;
+}
+
+/* takign advantage of inheritance rules here */
+*[data-draggable=true].ktwp-de-cdrag .ktwp-de-effectsDiv::before {background-image: url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\"><g fill=\"rgba(0,0,0,0.3)\" stroke=\"rgba(190,190,190,1)\" stroke-width=\".7\" ><path  d=\"m5.56 15.5-2.74 3.201-2.74-3.2h1.37v-3.217h2.74V15.5zM18.5 8.828l2.741-3.2 2.74 3.2h-1.37v3.216h-2.74V8.828zM.08 9.056l2.74-3.201 2.74 3.2H4.19v3.217H1.45V9.056zM23.981 15.273l-2.74 3.201-2.74-3.2h1.37v-3.217h2.74v3.216z\"/><circle cx=\"2.77\" cy=\"3.163\" r=\"1.993\"/><circle cx=\"2.77\" cy=\"21.389\" r=\"1.993\"/><circle cx=\"21.189\" cy=\"3.163\" r=\"1.993\"/><circle cx=\"21.189\" cy=\"21.389\" r=\"1.993\"/><circle cx=\"50.136\" cy=\"20.534\" r=\"0\"/><path d=\"m8.688 5.694-3.2-2.74 3.2-2.74v1.37h3.216v2.74H8.688zM15.133.214l3.2 2.74-3.2 2.74v-1.37h-3.216v-2.74h3.216zM15.133 18.634l3.2 2.74-3.2 2.741v-1.37h-3.216v-2.74h3.216zM8.688 24.115l-3.2-2.74 3.2-2.74v1.37h3.216v2.74H8.688z\"/></g></svg>');}
+*[data-draggable=true].ktwp-de-hdrag > .ktwp-de-effectsDiv::before {background-image: url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\"><path stroke=\"rgba(190,190,190,1)\" stroke-width=\".7\"  fill=\"rgba(0,0,0,0.3)\" d=\"m18.734 8.325 4.327 3.706-4.327 3.705v-1.853h-4.348v-3.705h4.348zM5.327 15.736 1 12.03l4.327-3.706v1.853h4.349v3.705H5.326z\"/></svg>');}
+*[data-draggable=true].ktwp-de-vdrag > .ktwp-de-effectsDiv::before {background-image: url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\"><path stroke=\"rgba(190,190,190,1)\" stroke-width=\".7\"  fill=\"rgba(0,0,0,0.3)\" d=\"M8.326 5.327 12.03 1l3.705 4.327h-1.853v4.349h-3.705V5.326zM15.736 18.734 12.03 23.06l-3.706-4.327h1.853v-4.348h3.705v4.348z\"/></svg>');}
+
+/* DON'T NEED ANYMORE  .is-dragging::after, */ *[data-draggable=true]  .ktwp-de-effectsDiv::after {
+	opacity: 0;
+  transition: opacity .1s ease-in;
+    transition-delay: 0s;
+	content: ''; 
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+ /*   border: 2px dashed red; */
+    border-radius: inherit;
+	position: absolute; 
+ 
+
+  /*  transform: scale(0.9) translateZ(0); */
+   filter: blur(5px); 
+	/*was 20, with opacity .75 */
+
+    background: linear-gradient(
+      to left,
+      red,
+      orange,
+      yellow,
+      green,
+      blue,
+      #8800FF,
+      #FF0088
+    );
+	animation-delay: 3s;
+    background-size: 200% 200%;
+   animation: animateGlow 1.25s linear infinite; 
+	clip-path: polygon(-100% -100%, -100% 200%, -1% 200%, -1% -1%, 101% -1%, 101% 101%, -1% 101%, -1% 200%, 200% 200%, 200% -100%) ;
+	/* mask-image: radial-gradient(transparent 15% , #0009 100%); */ /*alternative effect */
+}
+
+ *[data-draggable="true"]:not(.is-dragging):not(.ktwp-de-disablehover):hover  .ktwp-de-effectsDiv::after {
+	opacity: .8;
+	transition-delay: 2.5s;
+	transition-duration: 0.5s;
+}
+
+.is-dragging > .ktwp-de-effectsDiv::after {
+	opacity: .8;
+	transition-delay: 0s;
+	transition-duration: 0s;
+}
+
+
+@keyframes animateGlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+
+}
+
+@keyframes animateArrows {
+  0%,25%,50%,75%,100% {
+    opacity: 0;
+  }
+  12%,37%,62%, 83% {
+    opacity: .98;
+  }
+}
+
+.is-dragging  > .ktwp-de-effectsDiv {
+	  cursor: grabbing !important;
+	 border-width:2px; /*nah, causes content shifts on things without borders. We'll only do this if things already have a border. . */
+border:inherit dashed  #777 !important; 
+	  border-color:rgba(0,0,0,0) !important;/* hide borders, ::after element will draw them. this way drawing a border won't move the contents, whether or not there's already a border */
+	
+
+ 
+}
+`;
+		
+		var cssStyle = document.createElement("style");
+		cssStyle.textContent = cssRules;
+		document.head.appendChild(cssStyle);
 
         this.config.forEach(item => {
             const elements = document.querySelectorAll(item.selector);
@@ -123,8 +244,8 @@ class AdvancedDraggable {
       
        element.setAttribute('ktwp-de-rect-height',  rect.height);
        element.setAttribute('ktwp-de-rect-width',  rect.width);
-		element.setAttribute('ktwp-de-rect-x',  rect.x +  getComputedStyle(element)["display"] =='fixed'?0:window.scrollX);
-		element.setAttribute('ktwp-de-rect-y',  rect.y +  getComputedStyle(element)["display"] =='fixed'?0:window.scrollY);
+		element.setAttribute('ktwp-de-rect-x',  rect.x +  getComputedStyle(element)["display"] =='fixed'?0:window.scrollX); /* THIS IS AN ERROR. DISPLAY IS NEVER 'FIXED', POSITION IS */
+		element.setAttribute('ktwp-de-rect-y',  rect.y +  getComputedStyle(element)["display"] =='fixed'?0:window.scrollY);/* THIS IS AN ERROR. DISPLAY IS NEVER 'FIXED', POSITION IS */
         element.setAttribute('data-draggable', 'true');
 		element.setAttribute('data-ktwp-de-position', getComputedStyle(element)["position"])
 	/* nah, we just won't set the zIndex at all 	element.setAttribute('data-ktwp-de-zIndex', getComputedStyle(element)["zIndex"]) */
@@ -137,13 +258,13 @@ class AdvancedDraggable {
 		if (constraintDesc[config.constraint]&&constraintDesc[config.constraint].class) { element.classList.add("ktwp-de-"+constraintDesc[config.constraint].class);}
 		/* if I decide to make all children use move cursor, do this. const descendents = element.querySelectorAll("*"); /~ yes, I know how it's spelled. Ask Milo. ~/ */
         
-/* Going to try adding a child div to hold animations and effects so as not to overwrite existing fancy css stuff on draggable item's ::before and ::after. */console.log(config,config.hasOwnProperty("dragElement"));
+/* Going to try adding a child div to hold animations and effects so as not to overwrite existing fancy css stuff on draggable item's ::before and ::after. */ //console.log(config,config.hasOwnProperty("dragElement"));
 		if((config.hasOwnProperty("dragElement") && config.dragElement != '') || !config.hasOwnProperty("dragElement"))
  {const theDragElement = config.hasOwnProperty("dragElement")?element.querySelector(config.dragElement):element;
-  console.log("element",element,"theDragElement",theDragElement,"qs",element.querySelector(config.dragElement));
+  // console.log("element",element,"theDragElement",theDragElement,"qs",element.querySelector(config.dragElement));
 		const newDiv = document.createElement("div");
 		newDiv.className="ktwp-de-effectsDiv";
-		newDiv.style="position:absolute !important; left:0 !important;top:0 !important;bottom:0 !important;right:0 !important;background:transparent !important;filter:none !important;backdropFilter:none !important;border-radius:inherit;";
+		/* test removal  newDiv.style="position:absolute !important; left:0 !important;top:0 !important;bottom:0 !important;right:0 !important;background:transparent !important;filter:none !important;backdropFilter:none !important;border-radius:inherit;"; */
 		theDragElement.prepend(newDiv);
 		if(getComputedStyle(theDragElement).position == "static" ){element.style.position="relative";/* need this so newDiv is correctly sized and positioned. */}
  }

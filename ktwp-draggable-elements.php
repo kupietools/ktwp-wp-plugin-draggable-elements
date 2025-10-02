@@ -42,12 +42,12 @@ class AdvancedDraggableElements {
         );
 
         // NEW: Enqueue the CSS file directly
-        wp_enqueue_style(
+     /*   wp_enqueue_style(
             'draggable-styles',
             plugin_dir_url(__FILE__) . 'css/draggable.css', // Point to your CSS file
             array(),
             '1.0.0'
-        );
+        ); */
 
         // Configuration - edit this array as needed
 
