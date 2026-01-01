@@ -4,7 +4,7 @@
  * Plugin URI:        https://michaelkupietz.com/
  * Description:       Make page elements draggable, with optional movement constraints.
  * Version:           1
- * Requires at least: 5.2
+ * Requires at least: 6.3
  * Requires PHP:      7.2
  * Author:            Michael Kupietz
  * Author URI:        https://michaelkupietz.com/
@@ -38,8 +38,13 @@ class AdvancedDraggableElements {
             plugin_dir_url(__FILE__) . 'js/draggable.js',
             array(),
             '1.0.0',
-            true
+            array(
+            'strategy'  => 'defer', /* added for performance. Now requires WP 6.3 */
+            'in_footer' => true
+        )
         );
+
+
 
         // NEW: Enqueue the CSS file directly
      /*   wp_enqueue_style(
