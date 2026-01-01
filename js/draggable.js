@@ -3,7 +3,7 @@ Add a kupietools tab for this, with buttons for "show all draggable items" and "
 Make all kupietools tabs line up instead of hardcoding positions from top... use a CSS variable and have the plugins tell sessionStorage how many plugins have loaded, then compute the top.
 Make a settings panel for this, let users enter the config. Need to figure out how to let users enter the config object.
 */
-class xAdvancedDraggable {
+class AdvancedDraggable {
     constructor(config) {
         this.config = config;
         this.activeElement = null;
