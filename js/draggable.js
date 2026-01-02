@@ -1,3 +1,5 @@
+/* ISSUE: this uses a :where(.ktwp-force-relative) selector on elements that are not positioned. If original CSS loads late—after this script runs—the "glow" effect won't work properly on elements positioned by later-loading CSS in browsers released before early 2020. Because the CSS is injected early in the head, changing the :where(.ktwp-force-relative) selector to a .ktwp-force-relative may help, but if the later loading selector uses a tag-only rule like div {position:fixed}, the .ktwp-force-relative class selector will still have precedence and the element will not obey the div {position:fixed} rule. Sorry, this retrofits CSS onto existing code, that's just the way it is. No way to always control everything. */
+
 /*TO DOs:
 Add a kupietools tab for this, with buttons for "show all draggable items" and "reset all draggable items".
 Make all kupietools tabs line up instead of hardcoding positions from top... use a CSS variable and have the plugins tell sessionStorage how many plugins have loaded, then compute the top.
@@ -103,6 +105,10 @@ class AdvancedDraggable {
     setupDraggables() {
         //console.log('Setting up draggables:', this.config);
         const cssRules=`
+   :where(.ktwp-force-relative) {
+        position: relative; /* :where selector requires browsers released 2020 or later. Oh, well. */
+    }
+
 /* no longer needed .is-dragging::before, */ *[data-draggable=true] .ktwp-de-effectsDiv::before {
 	z-index:999999;
 	opacity: 0;
@@ -222,7 +228,8 @@ border:inherit dashed  #777 !important;
 		
 		var cssStyle = document.createElement("style");
 		cssStyle.textContent = cssRules;
-		document.head.appendChild(cssStyle);
+	//	document.head.appendChild(cssStyle); NO! put it first, so later css overrules it. This is necessary because if a draggable element's position is static, this applies a relative position to it, but it may only be static because CSS that positions it hasn't been loaded yet. 
+document.head.insertBefore(cssStyle, document.head.firstChild);
 
         this.config.forEach(item => {
             const elements = document.querySelectorAll(item.selector);
@@ -265,7 +272,12 @@ border:inherit dashed  #777 !important;
 		newDiv.className="ktwp-de-effectsDiv";
 		/* test removal  newDiv.style="position:absolute !important; left:0 !important;top:0 !important;bottom:0 !important;right:0 !important;background:transparent !important;filter:none !important;backdropFilter:none !important;border-radius:inherit;"; */
 		theDragElement.prepend(newDiv);
-		if(getComputedStyle(theDragElement).position == "static" ){element.style.position="relative";/* need this so newDiv is correctly sized and positioned. */
+		if(getComputedStyle(theDragElement).position == "static" ){
+			/* element.style.position="relative"; NO! Need to use a class and :where() css selector so can be overruled if element that's static when this runs is positioned by CSS that loads later.
+:where() only works on browsers released in 2020 or later, but, eh, 6 years old */
+element.classList.add("ktwp-force-relative");
+
+/* need this so newDiv is correctly sized and positioned. */
 																  element.dataset.changedByScript = "changed to relative by KTWP DE #1";}
  }
         
