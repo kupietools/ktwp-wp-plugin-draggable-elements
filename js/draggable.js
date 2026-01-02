@@ -155,12 +155,9 @@ background-image: url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/20
  /*   border: 2px dashed red; */
     border-radius: inherit;
 	position: absolute; 
- 
-
   /*  transform: scale(0.9) translateZ(0); */
    filter: blur(5px); 
 	/*was 20, with opacity .75 */
-
     background: linear-gradient(
       to left,
       red,
@@ -173,10 +170,12 @@ background-image: url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/20
     );
 	animation-delay: 3s;
     background-size: 200% 200%;
-   animation: animateGlow 1.25s linear infinite; 
+  /* animation: animateGlow 1.25s linear infinite;  */
 	clip-path: polygon(-100% -100%, -100% 200%, -1% 200%, -1% -1%, 101% -1%, 101% 101%, -1% 101%, -1% 200%, 200% 200%, 200% -100%) ;
 	/* mask-image: radial-gradient(transparent 15% , #0009 100%); */ /*alternative effect */
 }
+ *[data-draggable=true]:hover  .ktwp-de-effectsDiv::after{
+animation: animateGlow 1.25s linear infinite;}
 
  *[data-draggable="true"]:not(.is-dragging):not(.ktwp-de-disablehover):hover  .ktwp-de-effectsDiv::after {
 	opacity: .8;
