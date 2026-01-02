@@ -1,5 +1,3 @@
-/* ISSUE: this uses a :where(.ktwp-force-relative) selector on elements that are not positioned. If original CSS loads late—after this script runs—the "glow" effect won't work properly on elements positioned by later-loading CSS in browsers released before early 2020. Because the CSS is injected early in the head, changing the :where(.ktwp-force-relative) selector to a .ktwp-force-relative may help, but if the later loading selector uses a tag-only rule like div {position:fixed}, the .ktwp-force-relative class selector will still have precedence and the element will not obey the div {position:fixed} rule. Sorry, this retrofits CSS onto existing code, that's just the way it is. No way to always control everything. */
-
 /*TO DOs:
 Add a kupietools tab for this, with buttons for "show all draggable items" and "reset all draggable items".
 Make all kupietools tabs line up instead of hardcoding positions from top... use a CSS variable and have the plugins tell sessionStorage how many plugins have loaded, then compute the top.
@@ -105,10 +103,6 @@ class AdvancedDraggable {
     setupDraggables() {
         //console.log('Setting up draggables:', this.config);
         const cssRules=`
-   :where(.ktwp-force-relative) {
-        position: relative; /* :where selector requires browsers released 2020 or later. Oh, well. */
-    }
-
 /* no longer needed .is-dragging::before, */ *[data-draggable=true] .ktwp-de-effectsDiv::before {
 	z-index:999999;
 	opacity: 0;
@@ -161,9 +155,12 @@ background-image: url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/20
  /*   border: 2px dashed red; */
     border-radius: inherit;
 	position: absolute; 
+ 
+
   /*  transform: scale(0.9) translateZ(0); */
    filter: blur(5px); 
 	/*was 20, with opacity .75 */
+
     background: linear-gradient(
       to left,
       red,
@@ -176,12 +173,10 @@ background-image: url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/20
     );
 	animation-delay: 3s;
     background-size: 200% 200%;
-  /* animation: animateGlow 1.25s linear infinite;  */
+   animation: animateGlow 1.25s linear infinite; 
 	clip-path: polygon(-100% -100%, -100% 200%, -1% 200%, -1% -1%, 101% -1%, 101% 101%, -1% 101%, -1% 200%, 200% 200%, 200% -100%) ;
 	/* mask-image: radial-gradient(transparent 15% , #0009 100%); */ /*alternative effect */
 }
- *[data-draggable=true]:hover  .ktwp-de-effectsDiv::after{
-animation: animateGlow 1.25s linear infinite;}
 
  *[data-draggable="true"]:not(.is-dragging):not(.ktwp-de-disablehover):hover  .ktwp-de-effectsDiv::after {
 	opacity: .8;
@@ -228,8 +223,7 @@ border:inherit dashed  #777 !important;
 		
 		var cssStyle = document.createElement("style");
 		cssStyle.textContent = cssRules;
-	//	document.head.appendChild(cssStyle); NO! put it first, so later css overrules it. This is necessary because if a draggable element's position is static, this applies a relative position to it, but it may only be static because CSS that positions it hasn't been loaded yet. 
-document.head.insertBefore(cssStyle, document.head.firstChild);
+		document.head.appendChild(cssStyle);
 
         this.config.forEach(item => {
             const elements = document.querySelectorAll(item.selector);
@@ -246,12 +240,9 @@ document.head.insertBefore(cssStyle, document.head.firstChild);
     makeDraggable(element, config) {
         element.draggableConfig = config;
 		
-       const rect = element.getBoundingClientRect();
+        // Moved the rect calculation and attribute setting to lazyInit
+        // to prevent stale data if CSS loads late.
       
-       element.setAttribute('ktwp-de-rect-height',  rect.height);
-       element.setAttribute('ktwp-de-rect-width',  rect.width);
-		element.setAttribute('ktwp-de-rect-x',  rect.x +  getComputedStyle(element)["display"] =='fixed'?0:window.scrollX); /* THIS IS AN ERROR. DISPLAY IS NEVER 'FIXED', POSITION IS */
-		element.setAttribute('ktwp-de-rect-y',  rect.y +  getComputedStyle(element)["display"] =='fixed'?0:window.scrollY);/* THIS IS AN ERROR. DISPLAY IS NEVER 'FIXED', POSITION IS */
         element.setAttribute('data-draggable', 'true');
 		element.setAttribute('data-ktwp-de-position', getComputedStyle(element)["position"])
 	/* nah, we just won't set the zIndex at all 	element.setAttribute('data-ktwp-de-zIndex', getComputedStyle(element)["zIndex"]) */
@@ -264,35 +255,11 @@ document.head.insertBefore(cssStyle, document.head.firstChild);
 		if (constraintDesc[config.constraint]&&constraintDesc[config.constraint].class) { element.classList.add("ktwp-de-"+constraintDesc[config.constraint].class);}
 		/* if I decide to make all children use move cursor, do this. const descendents = element.querySelectorAll("*"); /~ yes, I know how it's spelled. Ask Milo. ~/ */
         
-/* Going to try adding a child div to hold animations and effects so as not to overwrite existing fancy css stuff on draggable item's ::before and ::after. */ //console.log(config,config.hasOwnProperty("dragElement"));
-		if((config.hasOwnProperty("dragElement") && config.dragElement != '') || !config.hasOwnProperty("dragElement"))
- {const theDragElement = config.hasOwnProperty("dragElement")?element.querySelector(config.dragElement):element;
-  // console.log("element",element,"theDragElement",theDragElement,"qs",element.querySelector(config.dragElement));
-		const newDiv = document.createElement("div");
-		newDiv.className="ktwp-de-effectsDiv";
-		/* test removal  newDiv.style="position:absolute !important; left:0 !important;top:0 !important;bottom:0 !important;right:0 !important;background:transparent !important;filter:none !important;backdropFilter:none !important;border-radius:inherit;"; */
-		theDragElement.prepend(newDiv);
-		if(getComputedStyle(theDragElement).position == "static" ){
-			/* element.style.position="relative"; NO! Need to use a class and :where() css selector so can be overruled if element that's static when this runs is positioned by CSS that loads later.
-:where() only works on browsers released in 2020 or later, but, eh, 6 years old */
-element.classList.add("ktwp-force-relative");
-
-/* need this so newDiv is correctly sized and positioned. */
-																  element.dataset.changedByScript = "changed to relative by KTWP DE #1";}
- }
+        // MOVED "effectsDiv" CREATION AND "position:relative" CHECK TO lazyInit()
+        // This ensures we check computed style only when interaction actually starts.
         
-/* END Going to try adding a child div to hold animations and effects so as not to overwrite existing fancy css stuff on draggable item's ::before and ::after. */
-        // For corner constraint, pre-position to a corner
-        if (config.constraint === 'corners') {
-            const margin = config.cornerMargin || 25;
-            element.style.position = 'fixed';
-            element.style.left = margin + 'px';
-            element.style.bottom = margin + 'px';
-            element.style.top = 'auto';
-            element.style.right = 'auto';
-			element.style.zIndex = '9999'; /* moved from handleMouseDown just for corner-snapped elements; see note about it in that function. Ideally, eventually, it should check if the developer has set this with getComputedStyles and only assign it if not; but I don't need that level of detail right now, so, will procrastinate on it. */
-		    document.body.appendChild(element)
-        } 
+        // MOVED "corners" PRE-POSITIONING TO lazyInit()
+        // This ensures the element doesn't snap to corner until interacted with (or session restored).
 		
         element.addEventListener('mousedown', (e) => this.handleMouseDown(e));
         element.addEventListener('dragstart', (e) => e.preventDefault());
@@ -321,8 +288,8 @@ element.classList.add("ktwp-force-relative");
 			 this.handleMouseDown({ /* prepare element for dragging (create placeholder if nec, etc) */
             button: 0, // Left click
             target: element,
-            clientX: rect.left,
-            clientY: rect.top,
+            clientX: 0, // Dummy, handled by restore
+            clientY: 0, // Dummy
             preventDefault: () => {} // Dummy preventDefault
         });
 								//console.log("ss2",sessionStorage);														
@@ -348,14 +315,62 @@ element.classList.add("ktwp-force-relative");
 		}
     }
 
+    // NEW FUNCTION: Setup elements just-in-time on first interaction
+    lazyInit(element) {
+        if (element.getAttribute('data-ktwp-initialized') === 'true') return;
+
+        const config = element.draggableConfig;
+        const rect = element.getBoundingClientRect();
+      
+        element.setAttribute('ktwp-de-rect-height',  rect.height);
+        element.setAttribute('ktwp-de-rect-width',  rect.width);
+        element.setAttribute('ktwp-de-rect-x',  rect.x +  (getComputedStyle(element)["display"] =='fixed'?0:window.scrollX)); 
+        element.setAttribute('ktwp-de-rect-y',  rect.y +  (getComputedStyle(element)["display"] =='fixed'?0:window.scrollY));
+
+        /* Going to try adding a child div to hold animations and effects so as not to overwrite existing fancy css stuff on draggable item's ::before and ::after. */ 
+        //console.log(config,config.hasOwnProperty("dragElement"));
+        if((config.hasOwnProperty("dragElement") && config.dragElement != '') || !config.hasOwnProperty("dragElement")) {
+            const theDragElement = config.hasOwnProperty("dragElement")?element.querySelector(config.dragElement):element;
+            // console.log("element",element,"theDragElement",theDragElement,"qs",element.querySelector(config.dragElement));
+            const newDiv = document.createElement("div");
+            newDiv.className="ktwp-de-effectsDiv";
+            /* test removal  newDiv.style="position:absolute !important; left:0 !important;top:0 !important;bottom:0 !important;right:0 !important;background:transparent !important;filter:none !important;backdropFilter:none !important;border-radius:inherit;"; */
+            theDragElement.prepend(newDiv);
+            if(getComputedStyle(theDragElement).position == "static" ){element.style.position="relative";/* need this so newDiv is correctly sized and positioned. */}
+        }
+        /* END Going to try adding a child div... */
+
+        // For corner constraint, pre-position to a corner
+        // Moved here so it doesn't jump until interaction or session restore
+        if (config.constraint === 'corners') {
+            const margin = config.cornerMargin || 25;
+            element.style.position = 'fixed';
+            element.style.left = margin + 'px';
+            element.style.bottom = margin + 'px';
+            element.style.top = 'auto';
+            element.style.right = 'auto';
+            element.style.zIndex = '9999'; 
+            document.body.appendChild(element)
+        }
+
+        element.setAttribute('data-ktwp-initialized', 'true');
+    }
+
     handleMouseDown(e) {
         if (e.button !== 0) return;
+        
+        const element = e.target.closest('[data-draggable]');
+        if (!element) return;
+
+        // Perform lazy initialization (position:relative check, effectsDiv creation) now
+        this.lazyInit(element);
+
         e.preventDefault();
 		
 		
         
-        const element = e.target.closest('[data-draggable]');
-        if (!element) return;
+        // const element = e.target.closest('[data-draggable]'); // Already found above
+        // if (!element) return; // Already checked
         
 /* copied from makedraggable; let's do these when clicked, not at load. */
 		const rect = element.getBoundingClientRect();
@@ -826,14 +841,6 @@ this.offsetY = null;
         document.dispatchEvent(event);
     }
 }
-
-
-/*TO DOs:
-Add a kupietools tab for this, with buttons for "show all draggable items" and "reset all draggable items".
-Make all kupietools tabs line up instead of hardcoding positions from top... use a CSS variable and have the plugins tell sessionStorage how many plugins have loaded, then compute the top.
-Make a settings panel for this, let users enter the config. Need to figure out how to let users enter the config object.
-*/
-
 
 // Initialize with the config provided by WordPress
 //console.log('Draggable script loaded');
