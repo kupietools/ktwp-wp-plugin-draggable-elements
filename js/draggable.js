@@ -31,15 +31,90 @@ class AdvancedDraggable {
 		
         this.init();
     }
+	
+	  init() {
+        const runSetupDraggablesAndObserver = () => {
+            this.setupDraggables(); // This now runs after LCP
 
-    init() {
+            // Move the MutationObserver setup here as well,
+            // so it only starts after the page is fully loaded and stable.
+            if (window.MutationObserver) {
+                const observer = new MutationObserver((mutations) => {
+                    mutations.forEach((mutation) => {
+                        if ((mutation.type === 'childList' && mutation.addedNodes.length > 0) || mutation.attributeName === 'class') {
+                            var theseNodes = [];
+                            if (mutation.attributeName === 'class') {
+                                const childrenArray = Array.from(mutation.target.querySelectorAll('*'));
+                                theseNodes = [mutation.target, ...childrenArray];
+                            } else {
+                                theseNodes = mutation.addedNodes;
+                            }
+                            theseNodes.forEach((node) => {
+                                if (node.nodeType === 1) { // Element node
+                                    this.config.forEach(item => {
+                                        if (node.matches && node.matches(item.selector)) {
+                                            if (!node.hasAttribute('data-draggable')) {
+                                                this.makeDraggable(node, item);
+                                            }
+                                        }
+                                        if (node.querySelectorAll) {
+                                            const childMatches = node.querySelectorAll(item.selector);
+                                            childMatches.forEach(child => {
+                                                if (!child.hasAttribute('data-draggable')) {
+                                                    this.makeDraggable(child, item);
+                                                }
+                                            });
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    });
+                });
+
+                observer.observe(document.body, {
+                    childList: true,
+                    subtree: true,
+                    attributes: true,
+                    attributeFilter: ['class', 'id']
+                });
+            }
+        };
+
+        if (document.readyState === 'complete') {
+            runSetupDraggablesAndObserver();
+        } else {
+            window.addEventListener('load', runSetupDraggablesAndObserver);
+        }
+    }
+
+    xinit_DISABLED_SLOW() {
+/* No, somehow page readystate is 'interactive' before things are done loading, and this.setupDraggables runs immediately while things are still loading. */
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
+            document.addEventListener(/* 'DOMContentLoaded' too fast! */ 'load', () => {
                 this.setupDraggables();
             });
         } else {
             this.setupDraggables();
+        } 
+		
+
+/* if the above is still bad, try
+
+if (document.readyState === 'loading') {
+            document.addEventListener('load', () => {
+                this.setupDraggables();
+            });
+        } else {
+           if ('requestIdleCallback' in window) {
+         requestIdleCallback(() => this.setupDraggables());
+     } else {
+         setTimeout(() => this.setupDraggables(), 0);
+     }
         }
+*/
+
+
         
         // Use MutationObserver to watch for new elements in real-time
         if (window.MutationObserver) {
