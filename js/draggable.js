@@ -26,11 +26,11 @@ class AdvancedDraggable {
                                          // Adjust this value (e.g., 5-20) based on desired tap sensitivity.
        this.isTouchSequenceActive = false; // Flag to track a valid single-finger touch interaction
     
-		//On mobile, a drag can be triggered with vanishingly small movements, which will suppress the 'click' it would otherwise register as on, say, desktop, because the movement really is so tiny the user thinks it's a click. So, on mobile, we'll only consider it a drag after the touch has moved more than a threshold.
+		//On mobile, a drag can be triggered with vanishingly small movements, which will suppress the 'click' it would otherwise register as on, say, desktop, because the movement really is so tiny the user thinks it's a click. So on mobile, we'll only consider it a drag after the touch has moved more than a threshold.
         // --- END CHANGES ---
 		
         this.init();
-    } 
+    }
 
     init() {
         if (document.readyState === 'loading') {
@@ -236,27 +236,26 @@ border:inherit dashed  #777 !important;
             });
         });
     }
-makeDraggable(element, config) {
+
+    makeDraggable(element, config) {
         element.draggableConfig = config;
-        
-        // Basic setup
+		
+        /* WAS HERE: rect calc and data-ktwp-de-position logic. MOVED TO lazyInit */
+
         element.setAttribute('data-draggable', 'true');
-        // store initial position to revert to absolute if needed later
-        element.setAttribute('data-ktwp-de-position', getComputedStyle(element)["position"]);
-        
+        /* WAS HERE: data-ktwp-de-zIndex */
         element.style.cursor = 'move';
         element.style.userSelect = 'none';
-        element.style.touchAction = "none";
+		element.style.touchAction="none";
+		const constraintDesc= {"vertical":{"desc":"vertically","class":"vdrag"},"horizontal":{"desc":"horizontally","class":"hdrag"},"corners":{"desc":"to any corner","class":"cdrag"}};
+		
+		element.title=(element.title?element.title+" - ":"")+"☝ Drag me "+(constraintDesc[config.constraint]&&constraintDesc[config.constraint].desc?constraintDesc[config.constraint].desc+" ":"")+"to reposition!";
+		if (constraintDesc[config.constraint]&&constraintDesc[config.constraint].class) { element.classList.add("ktwp-de-"+constraintDesc[config.constraint].class);}
+		/* if I decide to make all children use move cursor, do this. const descendents = element.querySelectorAll("*"); /~ yes, I know how it's spelled. Ask Milo. ~/ */
         
-        const constraintDesc = {"vertical":{"desc":"vertically","class":"vdrag"},"horizontal":{"desc":"horizontally","class":"hdrag"},"corners":{"desc":"to any corner","class":"cdrag"}};
-        element.title = (element.title ? element.title + " - " : "") + "☝ Drag me " + (constraintDesc[config.constraint] && constraintDesc[config.constraint].desc ? constraintDesc[config.constraint].desc + " " : "") + "to reposition!";
-        if (constraintDesc[config.constraint] && constraintDesc[config.constraint].class) { 
-            element.classList.add("ktwp-de-" + constraintDesc[config.constraint].class);
-        }
+        /* WAS HERE: The entire "Going to try adding a child div..." block. MOVED TO lazyInit */
 
-        // --- CORNER LOGIC: IMMEDIATE ---
-        // We MUST do this here. If we do this lazily (on hover), the element will 
-        // jump away from the mouse the moment the user tries to interact with it.
+        // For corner constraint, pre-position to a corner
         if (config.constraint === 'corners') {
             const margin = config.cornerMargin || 25;
             element.style.position = 'fixed';
@@ -264,25 +263,21 @@ makeDraggable(element, config) {
             element.style.bottom = margin + 'px';
             element.style.top = 'auto';
             element.style.right = 'auto';
-            element.style.zIndex = '9999';
-            document.body.appendChild(element);
-        }
-        
-        // --- LISTENERS ---
-        
-        // 1. ADD THIS: Trigger Lazy Init on Hover
-        // This ensures the effectsDiv exists so the "glow" and "arrows" work 
-        // the moment you hover, without waiting for a click.
+			element.style.zIndex = '9999'; /* moved from handleMouseDown just for corner-snapped elements; see note about it in that function. Ideally, eventually, it should check if the developer has set this with getComputedStyles and only assign it if not; but I don't need that level of detail right now, so, will procrastinate on it. */
+		    document.body.appendChild(element)
+        } 
+		
+        // Add this line to ensure animations load when you hover, and CSS position is re-checked
         element.addEventListener('mouseenter', () => this.lazyInit(element));
-
+        
         element.addEventListener('mousedown', (e) => this.handleMouseDown(e));
         element.addEventListener('dragstart', (e) => e.preventDefault());
         
-        // Touchscreen Support
+        // --- Touchscreen Support ---
         element.addEventListener('touchstart', (e) => this.handleTouchStart(e), {passive: false});
         element.addEventListener('touchmove', (e) => this.handleTouchMove(e), {passive: false});
         element.addEventListener('touchend', (e) => this.handleTouchEnd(e), {passive: false});
-        element.addEventListener('touchcancel', (e) => this.handleTouchEnd(e), {passive: false});
+        element.addEventListener('touchcancel', (e) => this.handleTouchEnd(e), {passive: false}); // handle when a touch is interrupted
 
         // Prevent clicks during drag
         element.addEventListener('click', (e) => {
@@ -292,89 +287,86 @@ makeDraggable(element, config) {
                 e.stopImmediatePropagation();
                 return false;
             }
-        }, true);
-        
-        // Restore session position if exists
-        if (element.id && sessionStorage.getItem("ktwp-de-elem-"+element.id+"-x")) {
-            const absoluteX = sessionStorage.getItem("ktwp-de-elem-"+element.id+"-x");
-            const absoluteY = sessionStorage.getItem("ktwp-de-elem-"+element.id+"-y");
-            const absoluteR = sessionStorage.getItem("ktwp-de-elem-"+element.id+"-r");
-            const absoluteB = sessionStorage.getItem("ktwp-de-elem-"+element.id+"-b");
-                                                                                   
-            // We manually trigger the setup logic here for restored items
-            this.handleMouseDown({ 
-                button: 0, 
-                target: element,
-                clientX: 0, 
-                clientY: 0, 
-                preventDefault: () => {} 
-            });
-                                                                   
-            this.handleMouseUp({ 
-                button: 0, 
-                target: element,
-                clientX: absoluteX,
-                clientY: absoluteY,
-                preventDefault: () => {}, 
-                simulated: true 
-            });
-            
-            element.style.left = absoluteX;
-            element.style.top = absoluteY;    
-            element.style.right = absoluteR;
-            element.style.bottom = absoluteB;    
-            element.classList.add('ktwp-de-beenDragged');
-        }
+        }, true); //end prevent clicks
+		
+	if (element.id && sessionStorage.getItem("ktwp-de-elem-"+element.id+"-x")) {const absoluteX=sessionStorage.getItem("ktwp-de-elem-"+element.id+"-x");
+						const absoluteY=sessionStorage.getItem("ktwp-de-elem-"+element.id+"-y");
+																				const absoluteR=sessionStorage.getItem("ktwp-de-elem-"+element.id+"-r");
+						const absoluteB=sessionStorage.getItem("ktwp-de-elem-"+element.id+"-b");
+			//console.log("ss",sessionStorage);																   
+			 this.handleMouseDown({ /* prepare element for dragging (create placeholder if nec, etc) */
+            button: 0, // Left click
+            target: element,
+            clientX: 0, // DUMMY value, we don't need real clientX for the restore logic as long as rect is handled in handleMouseDown
+            clientY: 0, // DUMMY
+            preventDefault: () => {} // Dummy preventDefault
+        });
+								//console.log("ss2",sessionStorage);														
+								//console.log("element",element.id);
+																				//console.log("X,Y",absoluteX,absoluteY);
+																   
+				this.handleMouseUp({ /* prepare element for dragging (create placeholder if nec, etc) */
+            button: 0, // Left click
+            target: element,
+            clientX: absoluteX,
+            clientY: absoluteY,
+            preventDefault: () => {}, // Dummy preventDefault
+			simulated: true /*tell function it's a simulated mouseup so it doesn't store coords */
+
+        });
+							//console.log("ss3",sessionStorage);
+			
+			element.style.left=absoluteX;
+		element.style.top=absoluteY;	
+			element.style.right=absoluteR;
+		element.style.bottom=absoluteB;	
+																				 element.classList.add('ktwp-de-beenDragged');
+		}
     }
 
-    // Lazy initialization of DOM heavy items (Effects Div) and Computed Styles (Rects)
+    // NEW METHOD to handle late-loading CSS
     lazyInit(element) {
-        if (element.getAttribute('data-ktwp-initialized') === 'true') return;
-
-        const config = element.draggableConfig;
-        
-        // Calculate Rects NOW (closest to interaction time)
-        // This solves your issue where CSS loads late and changes dimensions/positions
-        const rect = element.getBoundingClientRect();
+       // Always refresh this data on interaction to catch late-loading CSS
+       const rect = element.getBoundingClientRect();
       
-        element.setAttribute('ktwp-de-rect-height', rect.height);
-        element.setAttribute('ktwp-de-rect-width', rect.width);
-        element.setAttribute('ktwp-de-rect-x', rect.x + (getComputedStyle(element)["display"] == 'fixed' ? 0 : window.scrollX)); 
-        element.setAttribute('ktwp-de-rect-y', rect.y + (getComputedStyle(element)["display"] == 'fixed' ? 0 : window.scrollY));
-
-        // Create the Effects Div
-        if ((config.hasOwnProperty("dragElement") && config.dragElement != '') || !config.hasOwnProperty("dragElement")) {
-            const theDragElement = config.hasOwnProperty("dragElement") ? element.querySelector(config.dragElement) : element;
-            
-            const newDiv = document.createElement("div");
-            newDiv.className = "ktwp-de-effectsDiv";
-            theDragElement.prepend(newDiv);
-            
-            // Set position relative if static, so the effects div positions correctly
-            if (getComputedStyle(theDragElement).position == "static") {
-                element.style.position = "relative";
-            }
-        }
+       element.setAttribute('ktwp-de-rect-height',  rect.height);
+       element.setAttribute('ktwp-de-rect-width',  rect.width);
+       element.setAttribute('ktwp-de-rect-x',  rect.x +  (getComputedStyle(element)["display"] =='fixed'?0:window.scrollX)); /* THIS IS AN ERROR. DISPLAY IS NEVER 'FIXED', POSITION IS */
+       element.setAttribute('ktwp-de-rect-y',  rect.y +  (getComputedStyle(element)["display"] =='fixed'?0:window.scrollY));/* THIS IS AN ERROR. DISPLAY IS NEVER 'FIXED', POSITION IS */
+       
+       element.setAttribute('data-ktwp-de-position', getComputedStyle(element)["position"])
         
-        // Note: Corner logic was moved back to makeDraggable to prevent "jumping"
-
-        element.setAttribute('data-ktwp-initialized', 'true');
+       if (element.getAttribute('data-ktwp-initialized') === 'true') return;
+       
+       const config = element.draggableConfig;
+       
+       /* Going to try adding a child div to hold animations and effects so as not to overwrite existing fancy css stuff on draggable item's ::before and ::after. */ //console.log(config,config.hasOwnProperty("dragElement"));
+		if((config.hasOwnProperty("dragElement") && config.dragElement != '') || !config.hasOwnProperty("dragElement"))
+ {const theDragElement = config.hasOwnProperty("dragElement")?element.querySelector(config.dragElement):element;
+  // console.log("element",element,"theDragElement",theDragElement,"qs",element.querySelector(config.dragElement));
+		const newDiv = document.createElement("div");
+		newDiv.className="ktwp-de-effectsDiv";
+		/* test removal  newDiv.style="position:absolute !important; left:0 !important;top:0 !important;bottom:0 !important;right:0 !important;background:transparent !important;filter:none !important;backdropFilter:none !important;border-radius:inherit;"; */
+		theDragElement.prepend(newDiv);
+		if(getComputedStyle(theDragElement).position == "static" ){element.style.position="relative";/* need this so newDiv is correctly sized and positioned. */}
+ }
+        
+/* END Going to try adding a child div to hold animations and effects so as not to overwrite existing fancy css stuff on draggable item's ::before and ::after. */
+       
+       element.setAttribute('data-ktwp-initialized', 'true');
     }
+
     handleMouseDown(e) {
         if (e.button !== 0) return;
-        
-        const element = e.target.closest('[data-draggable]');
-        if (!element) return;
-
-        // Perform lazy initialization (position:relative check, effectsDiv creation) now
-        this.lazyInit(element);
-
         e.preventDefault();
 		
 		
         
-        // const element = e.target.closest('[data-draggable]'); // Already found above
-        // if (!element) return; // Already checked
+        const element = e.target.closest('[data-draggable]');
+        if (!element) return;
+        
+        // Ensure lazy setup is done (in case touch/mouse entered without triggering mouseenter, or if CSS changed)
+        this.lazyInit(element);
         
 /* copied from makedraggable; let's do these when clicked, not at load. */
 		const rect = element.getBoundingClientRect();
