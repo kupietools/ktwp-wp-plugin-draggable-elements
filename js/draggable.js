@@ -26,11 +26,11 @@ class AdvancedDraggable {
                                          // Adjust this value (e.g., 5-20) based on desired tap sensitivity.
        this.isTouchSequenceActive = false; // Flag to track a valid single-finger touch interaction
     
-		//On mobile, a drag can be triggered with vanishingly small movements, which will suppress the 'click' it would otherwise register as on, say, desktop, because the movement really is so tiny the user thinks it's a click. So on mobile, we'll only consider it a drag after the touch has moved more than a threshold.
+		//On mobile, a drag can be triggered with vanishingly small movements, which will suppress the 'click' it would otherwise register as on, say, desktop, because the movement really is so tiny the user thinks it's a click. So, on mobile, we'll only consider it a drag after the touch has moved more than a threshold.
         // --- END CHANGES ---
 		
         this.init();
-    }
+    } 
 
     init() {
         if (document.readyState === 'loading') {
