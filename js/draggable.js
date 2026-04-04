@@ -2,6 +2,9 @@
 Add a kupietools tab for this, with buttons for "show all draggable items" and "reset all draggable items".
 Make all kupietools tabs line up instead of hardcoding positions from top... use a CSS variable and have the plugins tell sessionStorage how many plugins have loaded, then compute the top.
 Make a settings panel for this, let users enter the config. Need to figure out how to let users enter the config object.
+
+The help popup, which is scrollable and draggable, wasn't scrolling on mobile because touch-action was none, which kills the scroll bar. I added a "scrollable" atttribute in the config to make the touch-action pan-y for a given selector, but ideally, I'd like to use javascript to detect if it's scrollable. Prblem right now is, kupietools panels are hidden with display:none rather than visibility:hidden, which makes measuring the content vs the element height impossible while hidden, so that will need to be updated. MK 2026apr3
+
 */
 class AdvancedDraggable {
     constructor(config) {
@@ -302,10 +305,10 @@ border:inherit dashed  #777 !important;
 
         this.config.forEach(item => {
             const elements = document.querySelectorAll(item.selector);
-            //console.log(`Found ${elements.length} elements for ${item.selector}`);
+            console.log(`Found ${elements.length} elements for ${item.selector}`);
             
             elements.forEach(element => {
-                if (!element.hasAttribute('data-draggable')) {
+                if (!element.hasAttribute('data-draggable') || (item.scrollable && !element.hasAttribute('data-ktwp-de-pan-y')) ) { /* || (item.scrollable && !element.hasAttribute('data-ktwp-de-pan-y')) means this will run again on the same element IF "scrollable' is set. Ordinarily it will never process the same element more than once. */
                     this.makeDraggable(element, item);
                 }
             });
@@ -321,7 +324,9 @@ border:inherit dashed  #777 !important;
         /* WAS HERE: data-ktwp-de-zIndex */
         element.style.cursor = 'move';
         element.style.userSelect = 'none';
-		element.style.touchAction="none";
+		console.log("ELEM, element, config",element,config);
+		if(config.scrollable) {element.setAttribute("data-ktwp-de-pan-y","true");} /* make sure stays set if multiple selectors match element */
+		element.style.touchAction=element.getAttribute("data-ktwp-de-pan-y")=="true"?"pan-y":"none";
 		const constraintDesc= {"vertical":{"desc":"vertically","class":"vdrag"},"horizontal":{"desc":"horizontally","class":"hdrag"},"corners":{"desc":"to any corner","class":"cdrag"}};
 		
 		element.title=(element.title?element.title+" - ":"")+"☝ Drag me "+(constraintDesc[config.constraint]&&constraintDesc[config.constraint].desc?constraintDesc[config.constraint].desc+" ":"")+"to reposition!";

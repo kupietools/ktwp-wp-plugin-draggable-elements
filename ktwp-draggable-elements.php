@@ -62,8 +62,10 @@ class AdvancedDraggableElements {
 
             array('selector' => 'CSSSelector' [, 
                   'constraint' => 'corners|vertical|horizontal', 
-                  'cornerMargin' => marginInPx,
-				  'dragElement' => ''|'Child Element CSS selector'] 
+                  'cornerMargin' => marginInPx, // corners only 
+				  'dragElement' => 'Child Element CSS selector', //have to test, don't recall what this does!!
+			'scrollable' => 'true' // a hint that the draggable element is also itself scrollable, like a scrollable div... otherwise the draggability "swallows" the scrollability on mobile. Technically, this changes touch-action from none to pan-y. 
+			]
                  ) 
                   */
 
@@ -78,7 +80,10 @@ class AdvancedDraggableElements {
             array('selector' => '#cli-control, .ktwp-kupietabs-tab-div','constraint' => 'vertical' ),
             array('selector' => 'ul.drag > li'), 
             array('selector' => '.hire-floating-div, .ktwp-kupietabs-panel-div'),
-			 array('selector' => '.octagon-center')
+			array('selector' => '.octagon-center'),
+            array('selector' => '#ktwp_help_tab-panel', 'scrollable'=>'true')
+
+/*NOTE: Typically if more than one selector matches an element, it will ONLY run the first and ignore the rest. The sole exception is if it has "scrollable"=>"true"... this selector will ALWAYS run, even on an element that a previous selector ran on. For this reason, it's best to have 'scrollable' last, after everything else that might match, and on its own line, with no other options. If scrollable runs first, it will prevent the later selector from running.*/
 
             /* EXAMPLES:
             array('selector' => 'body > div.blarg > div.gooph'), //free drag
